@@ -2,17 +2,16 @@
 #include <stdlib.h>
 #include <string.h>
 
-int check_if_type_exists(char *input) {
+void check_if_type_exists(char *input) {
   input = input + 5;
   if (strncmp(input, "echo", 4) == 0) {
     printf("echo is a shell builtin\n");
-    return 0;
+  } else if (strncmp(input, "exit", 4) == 0) {
+    printf("exit is a shell builtin\n");
+  } else {
+
+    printf("%s: not found\n", input);
   }
-  if (strncmp(input, "exit", 4) == 0) {
-    printf("type is a shell builtin\n");
-    return 0;
-  }
-  return 1;
 }
 
 int main(int argc, char *argv[]) {
@@ -37,7 +36,8 @@ int main(int argc, char *argv[]) {
       continue;
     }
     //***************handle type command ***************************
-    if (check_if_type_exists(input) == 0) {
+    if (strncmp(input, "type", 4) == 0) {
+      check_if_type_exists(input);
       continue;
     }
     printf("%s: command not found\n", input);

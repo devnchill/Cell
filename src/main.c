@@ -14,10 +14,14 @@ int main(int argc, char *argv[]) {
     // extract input properly and remove new line character
     fgets(input, 100, stdin);
     input[strlen(input) - 1] = '\0';
-    //****************************************
-    // handle exit 0 command
-    if (strncmp(input, "exit 0", 6) == 0) {
+    //************************** handle exit 0 command
+    if (strcmp(input, "exit 0") == 0) {
       return 0;
+    }
+    //****************handle echo command****************************
+    if (strncmp(input, "echo", 4) == 0) {
+      printf("%s\n", input + 5);
+      continue;
     }
     printf("%s: command not found\n", input);
   }

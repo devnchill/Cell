@@ -8,8 +8,9 @@ void check_if_type_exists(char *input) {
     printf("echo is a shell builtin\n");
   } else if (strncmp(input, "exit", 4) == 0) {
     printf("exit is a shell builtin\n");
+  } else if (strncmp(input, "type", 4) == 0) {
+    printf("type is a shell builtin\n");
   } else {
-
     printf("%s: not found\n", input);
   }
 }

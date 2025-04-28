@@ -8,11 +8,7 @@ char *getfilepath(char *file);
 
 void print_cwd(char *input) {
   char cwd[200];
-  if (getcwd(cwd, sizeof(cwd)) != NULL) {
-    printf("%s\n", cwd);
-  } else {
-    perror("getcwd error");
-  }
+  printf("%s\n", cwd);
 }
 
 int execute_command(char *command) {

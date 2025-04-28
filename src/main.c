@@ -7,15 +7,34 @@
 char *getfilepath(char *file);
 
 int execute_command(char *command) {
-  char *path = getfilepath(command);
-  if (path) {
-    if (system(command) == -1) {
-      return -1; // Error executing the command
-    }
-  } else {
-    printf("%s: command not found\n", command);
+  // Create a copy of the command to extract the first word
+  char *command_copy = strdup(command);
+  if (!command_copy) {
+    perror("strdup");
     return -1;
   }
+
+  char *first_word = strtok(command_copy, " ");
+  if (!first_word) {
+    free(command_copy);
+    return -1;
+  }
+
+  char *path = getfilepath(first_word);
+  if (path) {
+    if (system(command) == -1) {
+      free(path);
+      free(command_copy);
+      return -1; // Error executing the command
+    }
+    free(path);
+  } else {
+    printf("%s: command not found\n", first_word);
+    free(command_copy);
+    return -1;
+  }
+
+  free(command_copy);
   return 0;
 }
 

@@ -1,12 +1,19 @@
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
+// Function prototype for getfilepath
+char *getfilepath(char *file);
+
 int execute_command(char *command) {
-  // Use system to execute the command
-  if (system(command) == -1) {
+  char *path = getfilepath(command);
+  if (path) {
+    if (system(command) == -1) {
+      return -1; // Error executing the command
+    }
+  } else {
+    printf("%s: command not found\n", command);
     return -1;
   }
   return 0;
@@ -120,9 +127,6 @@ int main() {
     if (execute_command(input) == 0) {
       continue;
     }
-
-    // Handle command not found
-    printf("%s: command not found\n", input);
   }
 
   return 0;

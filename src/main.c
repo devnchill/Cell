@@ -152,7 +152,7 @@ int main() {
     }
 
     // Handle pwd command
-    if (strcmp(input, "pwd")) {
+    if (strcmp(input, "pwd") == 0) {
       print_cwd(input);
     }
     // Execute the command

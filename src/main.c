@@ -7,12 +7,18 @@
 char *getfilepath(char *file);
 
 int execute_command(char *command) {
+  // Get the full path of the command
   char *path = getfilepath(command);
   if (path) {
-    char full_command[200];
-    snprintf(full_command, sizeof(full_command), "%s %s", path,
-             command + strlen(path) + 1);
-    if (system(full_command) == -1) {
+    // Split the command into arguments
+    char *args[2];
+    args[0] = path;
+    args[1] = NULL; // If no additional arguments, set NULL for the last element
+
+    // Execute the command using execvp, which uses the PATH environment
+    // variable
+    if (execvp(args[0], args) == -1) {
+      perror("Error executing command");
       return -1; // Error executing the command
     }
   } else {
@@ -20,64 +26,6 @@ int execute_command(char *command) {
     return -1;
   }
   return 0;
-}
-
-int is_builtin(char *input) {
-  if (strncmp(input, "echo", 4) == 0) {
-    return 1;
-  }
-  if (strncmp(input, "exit", 4) == 0) {
-    return 1;
-  }
-  if (strncmp(input, "type", 4) == 0) {
-    return 1;
-  }
-  return 0;
-}
-
-void check_if_type_exists(char *input) {
-  int found = 0;
-  input = input + 5; // Skip "type "
-
-  if (is_builtin(input)) {
-    printf("%s is a shell builtin\n", input);
-    return;
-  }
-
-  // Get the PATH environment variable
-  char *path_variable = getenv("PATH");
-  if (!path_variable) {
-    perror("Path Variable Not Found");
-    return;
-  }
-
-  // Copy the PATH variable to avoid modifying the original
-  char *path_variable_copy = strdup(path_variable);
-  char *token = strtok(path_variable_copy, ":");
-
-  while (token != NULL) {
-    char *file_with_path =
-        malloc(strlen(token) + strlen("/") + strlen(input) + 1);
-    file_with_path[0] = '\0';
-    strcat(file_with_path, token);
-    strcat(file_with_path, "/");
-    strcat(file_with_path, input);
-
-    if (access(file_with_path, F_OK) == 0) {
-      printf("%s is %s\n", input, file_with_path);
-      found = 1;
-      free(file_with_path);
-      break;
-    }
-    free(file_with_path);
-    token = strtok(NULL, ":");
-  }
-
-  free(path_variable_copy);
-
-  if (!found) {
-    printf("%s: not found\n", input);
-  }
 }
 
 char *getfilepath(char *file) {
@@ -117,12 +65,6 @@ int main() {
     // Handle echo command
     if (strncmp(input, "echo", 4) == 0) {
       printf("%s\n", input + 5);
-      continue;
-    }
-
-    // Handle type command
-    if (strncmp(input, "type", 4) == 0) {
-      check_if_type_exists(input);
       continue;
     }
 

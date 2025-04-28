@@ -3,19 +3,26 @@
 #include <string.h>
 #include <unistd.h>
 
+int is_builtin(char *input) {
+
+  if (strncmp(input, "echo", 4) == 0) {
+    return 1;
+  }
+  if (strncmp(input, "exit", 4) == 0) {
+    return 1;
+  }
+  if (strncmp(input, "type", 4) == 0) {
+    return 1;
+  }
+  return 0;
+}
 void check_if_type_exists(char *input) {
   int found = 0;
   input = input + 5;
-  // if (strncmp(input, "echo", 4) == 0) {
-  //   printf("echo is a shell builtin\n");
-  // } else if (strncmp(input, "exit", 4) == 0) {
-  //   printf("exit is a shell builtin\n");
-  // } else if (strncmp(input, "type", 4) == 0) {
-  //   printf("type is a shell builtin\n");
-  // } else {
-  //   printf("%s: not found\n", input);
-  // }
-  //***************Work with actual path***************
+  if (is_builtin(input)) {
+    printf("%s is a shell builtin\n", input);
+    return;
+  }
   char *path_variable = getenv("PATH");
   if (!path_variable) {
     perror("Path Vairable Not Found");

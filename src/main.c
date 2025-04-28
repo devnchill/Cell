@@ -6,6 +6,15 @@
 // Function prototype for getfilepath
 char *getfilepath(char *file);
 
+void print_cwd(char *input) {
+  char cwd[200];
+  if (getcwd(cwd, sizeof(cwd)) != NULL) {
+    printf("%s\n", cwd);
+  } else {
+    perror("getcwd error");
+  }
+}
+
 int execute_command(char *command) {
   // Create a copy of the command to extract the first word
   char *command_copy = strdup(command);
@@ -39,14 +48,14 @@ int execute_command(char *command) {
 }
 
 int is_builtin(char *input) {
-  if (strncmp(input, "echo", 4) == 0) {
-    return 1;
-  }
-  if (strncmp(input, "exit", 4) == 0) {
-    return 1;
-  }
-  if (strncmp(input, "type", 4) == 0) {
-    return 1;
+  char *builtin_commands_array[] = {"echo", "type", "exit", "pwd"};
+  int num_commands =
+      sizeof(builtin_commands_array) / sizeof(builtin_commands_array[0]);
+
+  for (int i = 0; i < num_commands; i++) {
+    if (strcmp(input, builtin_commands_array[i]) == 0) {
+      return 1;
+    }
   }
   return 0;
 }
@@ -142,6 +151,10 @@ int main() {
       continue;
     }
 
+    // Handle pwd command
+    if (strcmp(input, "pwd")) {
+      print_cwd(input);
+    }
     // Execute the command
     if (execute_command(input) == 0) {
       continue;

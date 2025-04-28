@@ -3,8 +3,9 @@
 #include <string.h>
 #include <unistd.h>
 
-int is_builtin(char *input) {
+int execute_command(char *command) { return 0; }
 
+int is_builtin(char *input) {
   if (strncmp(input, "echo", 4) == 0) {
     return 1;
   }
@@ -16,6 +17,7 @@ int is_builtin(char *input) {
   }
   return 0;
 }
+
 void check_if_type_exists(char *input) {
   int found = 0;
   input = input + 5;
@@ -59,7 +61,7 @@ int main() {
   // Wait for user input
   char input[100];
   while (1) {
-    printf("$ ");
+    printf("\x1b[0;32m$\x1b[0m ");
     //**********************************************
     // extract input properly and remove new line character
     fgets(input, 100, stdin);
@@ -76,6 +78,9 @@ int main() {
     //***************handle type command ***************************
     if (strncmp(input, "type", 4) == 0) {
       check_if_type_exists(input);
+      continue;
+    }
+    if (execute_command(input) == 0) {
       continue;
     }
     printf("%s: command not found\n", input);

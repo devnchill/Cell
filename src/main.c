@@ -9,6 +9,7 @@ char *getfilepath(char *file);
 int execute_command(char *command) {
   char *path = getfilepath(command);
   if (path) {
+    printf("Current PATH: %s\n", getenv("PATH"));
     if (system(command) == -1) {
       return -1; // Error executing the command
     }

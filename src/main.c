@@ -1,10 +1,13 @@
 #include <stdio.h>
+#include <readline/history.h>
+#include <readline/readline.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
 // Function prototype for getfilepath
 char *getfilepath(char *file);
+char *builtin_commands_array[] = {"echo", "type", "exit", "pwd"};
 
 void print_cwd(char *input) {
   char cwd[200];
@@ -48,7 +51,6 @@ int execute_command(char *command) {
 }
 
 int is_builtin(char *input) {
-  char *builtin_commands_array[] = {"echo", "type", "exit", "pwd"};
   int num_commands =
       sizeof(builtin_commands_array) / sizeof(builtin_commands_array[0]);
 
@@ -125,14 +127,48 @@ char *getfilepath(char *file) {
   return NULL;
 }
 
+char *command_generator(const char *text, int state) {
+  static int list_index;
+  static int len;
+
+  if (!state) {
+    list_index = 0;
+    len = strlen(text);
+  }
+
+  while (builtin_commands_array[list_index]) {
+    const char *cmd = builtin_commands_array[list_index];
+    list_index++;
+
+    if (strncmp(cmd, text, len) == 0) {
+      return strdup(cmd);
+    }
+  }
+
+  return NULL;
+}
+
+char **command_completion(const char *text, int start, int end) {
+  rl_attempted_completion_over = 1; // Prevent filename completion
+  return rl_completion_matches(text, command_generator);
+}
+
 int main() {
   setbuf(stdout, NULL); // Flush after every printf
 
   char input[100];
+  rl_attempted_completion_function =   command_completion;
   while (1) {
-    printf("\x1b[0;32m$\x1b[0m ");
-    fgets(input, 100, stdin);
-    input[strlen(input) - 1] = '\0'; // Remove the newline character
+    char *line = readline("\x1b[0;32m$\x1b[0m ");
+    if(!line) break;
+    
+    if(strlen(line)==0) {
+      free(line);
+      continue;
+    }
+    add_history(line);
+    strcpy(input, line);
+    free(line);
 
     // Handle exit 0 command
     if (strcmp(input, "exit 0") == 0) {

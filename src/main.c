@@ -1,11 +1,11 @@
 #include <stdio.h>
-#include <dirent.h>   
-#include <sys/types.h> 
+#include <dirent.h>
+#include <limits.h>
 #include <readline/history.h>
 #include <readline/readline.h>
-#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
+#include <sys/types.h>
 #include <unistd.h>
 
 // Function prototype
@@ -16,7 +16,8 @@ int is_builtin(char *command);
 int execute_command(char *command);
 
 // Builtin commands
-char *builtin_commands_array[] = {"echo", "type", "exit", "pwd", NULL};
+char *builtin_commands_array[] = {"echo", "history", "type",
+                                  "exit", "pwd",     NULL};
 #define MAX_EXTERNAL_CMDS 1024
 char **external_commands_array = NULL;
 int external_command_count = 0;
@@ -123,47 +124,49 @@ int execute_command(char *command) {
 
 // For tab-completion
 void populate_external_commands() {
-    char *path = getenv("PATH");
-    if (!path) return;
+  char *path = getenv("PATH");
+  if (!path)
+    return;
 
-    char *path_copy = strdup(path);
-    char *dir = strtok(path_copy, ":");
-    int capacity = 256; // initial guess
-    external_commands_array = malloc(capacity * sizeof(char *));
+  char *path_copy = strdup(path);
+  char *dir = strtok(path_copy, ":");
+  int capacity = 256; // initial guess
+  external_commands_array = malloc(capacity * sizeof(char *));
 
-    while (dir) {
-        DIR *dp = opendir(dir);
-        if (dp) {
-            struct dirent *entry;
-            while ((entry = readdir(dp))) {
-                char fullpath[PATH_MAX];
-                snprintf(fullpath, sizeof(fullpath), "%s/%s", dir, entry->d_name);
-                if (access(fullpath, X_OK) == 0 ) {
-                    // Avoid duplicates
-                    int duplicate = 0;
-                    for (int i = 0; i < external_command_count; i++) {
-                        if (strcmp(external_commands_array[i], entry->d_name) == 0) {
-                            duplicate = 1;
-                            break;
-                        }
-                    }
-                    if (!duplicate) {
-                        if (external_command_count >= capacity) {
-                            capacity *= 2;
-                            external_commands_array = realloc(external_commands_array, capacity * sizeof(char *));
-                        }
-                        external_commands_array[external_command_count++] = strdup(entry->d_name);
-                    }
-                }
+  while (dir) {
+    DIR *dp = opendir(dir);
+    if (dp) {
+      struct dirent *entry;
+      while ((entry = readdir(dp))) {
+        char fullpath[PATH_MAX];
+        snprintf(fullpath, sizeof(fullpath), "%s/%s", dir, entry->d_name);
+        if (access(fullpath, X_OK) == 0) {
+          // Avoid duplicates
+          int duplicate = 0;
+          for (int i = 0; i < external_command_count; i++) {
+            if (strcmp(external_commands_array[i], entry->d_name) == 0) {
+              duplicate = 1;
+              break;
             }
-            closedir(dp);
+          }
+          if (!duplicate) {
+            if (external_command_count >= capacity) {
+              capacity *= 2;
+              external_commands_array =
+                  realloc(external_commands_array, capacity * sizeof(char *));
+            }
+            external_commands_array[external_command_count++] =
+                strdup(entry->d_name);
+          }
         }
-        dir = strtok(NULL, ":");
+      }
+      closedir(dp);
     }
+    dir = strtok(NULL, ":");
+  }
 
-    free(path_copy);
+  free(path_copy);
 }
-
 
 char *command_generator(const char *text, int state) {
   static int list_index = 0;
@@ -195,10 +198,33 @@ char *command_generator(const char *text, int state) {
   return NULL;
 }
 
-
 char **command_completion(const char *text, int start, int end) {
   rl_attempted_completion_over = 1;
   return rl_completion_matches(text, command_generator);
+}
+
+void print_history(char *line) {
+  HIST_ENTRY **hist_list = history_list();
+  int n = -1;
+  int count = 0;
+  int start = 0;
+  if (strlen(line) > 7) {
+    char *no_of_cmds_to_display = line + 7;
+    while (*no_of_cmds_to_display == ' ')
+      no_of_cmds_to_display++;
+    if (*no_of_cmds_to_display != '\0')
+      n = atoi(no_of_cmds_to_display);
+  }
+  if (!hist_list)
+    return;
+  while (hist_list[count])
+    count++;
+  if (n < count && n > 0) {
+    start = count - n;
+  }
+  for (int i = start; i < count; i++) {
+    printf("    %d %s\n", i + history_base, hist_list[i]->line);
+  }
 }
 
 // Main shell loop
@@ -238,6 +264,11 @@ int main() {
 
     if (strcmp(line, "pwd") == 0) {
       print_cwd();
+      free(line);
+      continue;
+    }
+    if (strncmp(line, "history", 7) == 0) {
+      print_history(line);
       free(line);
       continue;
     }

@@ -1,25 +1,96 @@
 #include <stdio.h>
 #include <readline/history.h>
 #include <readline/readline.h>
+#include <limits.h>
 #include <stdlib.h>
 #include <string.h>
 #include <unistd.h>
 
-// Function prototype for getfilepath
+// Function prototype
 char *getfilepath(char *file);
-char *builtin_commands_array[] = {"echo", "type", "exit", "pwd"};
+void print_cwd(void);
+void check_if_type_exists(char *input);
+int is_builtin(char *input);
+int execute_command(char *command);
 
-void print_cwd(char *input) {
-  char cwd[200];
+// Builtin commands
+char *builtin_commands_array[] = {"echo", "type", "exit", "pwd", NULL};
+
+// Print current working directory
+void print_cwd(void) {
+  char cwd[PATH_MAX];
   if (getcwd(cwd, sizeof(cwd)) != NULL) {
     printf("%s\n", cwd);
   } else {
-    printf("");
+    perror("getcwd");
   }
 }
 
+// Check if input is a builtin command
+int is_builtin(char *input) {
+  for (int i = 0; builtin_commands_array[i] != NULL; i++) {
+    if (strcmp(input, builtin_commands_array[i]) == 0) {
+      return 1;
+    }
+  }
+  return 0;
+}
+
+// Search for command in PATH
+char *getfilepath(char *file) {
+  char *path = getenv("PATH");
+  if (!path)
+    return NULL;
+
+  char *path_copy = strdup(path);
+  if (!path_copy)
+    return NULL;
+
+  char *token = strtok(path_copy, ":");
+  while (token != NULL) {
+    char *full_path = malloc(strlen(token) + strlen(file) + 2);
+    if (!full_path)
+      break;
+
+    sprintf(full_path, "%s/%s", token, file);
+    if (access(full_path, F_OK) == 0) {
+      free(path_copy);
+      return full_path; // Caller must free
+    }
+    free(full_path);
+    token = strtok(NULL, ":");
+  }
+  free(path_copy);
+  return NULL;
+}
+
+// Check for "type" command behavior
+void check_if_type_exists(char *input) {
+  char *arg = input + 5; // skip "type "
+  while (*arg == ' ')
+    arg++; // trim spaces
+
+  if (strlen(arg) == 0) {
+    printf("type: missing argument\n");
+    return;
+  }
+
+  if (is_builtin(arg)) {
+    printf("%s is a shell builtin\n", arg);
+    return;
+  }
+
+  char *filepath = getfilepath(arg);
+  if (filepath) {
+    printf("%s is %s\n", arg, filepath);
+    free(filepath);
+  } else {
+    printf("%s: not found\n", arg);
+  }
+}
+
+// Execute external command using system()
 int execute_command(char *command) {
-  // Create a copy of the command to extract the first word
   char *command_copy = strdup(command);
   if (!command_copy) {
     perror("strdup");
@@ -34,102 +105,21 @@ int execute_command(char *command) {
 
   char *path = getfilepath(first_word);
   if (path) {
-    if (system(command) == -1) {
-      free(path);
-      free(command_copy);
-      return -1; // Error executing the command
-    }
+    int status = system(command);
     free(path);
+    free(command_copy);
+    return status == -1 ? -1 : 0;
   } else {
     printf("%s: command not found\n", first_word);
     free(command_copy);
     return -1;
   }
-
-  free(command_copy);
-  return 0;
 }
 
-int is_builtin(char *input) {
-  int num_commands =
-      sizeof(builtin_commands_array) / sizeof(builtin_commands_array[0]);
-
-  for (int i = 0; i < num_commands; i++) {
-    if (strcmp(input, builtin_commands_array[i]) == 0) {
-      return 1;
-    }
-  }
-  return 0;
-}
-
-void check_if_type_exists(char *input) {
-  int found = 0;
-  input = input + 5; // Skip "type "
-
-  if (is_builtin(input)) {
-    printf("%s is a shell builtin\n", input);
-    return;
-  }
-
-  // Get the PATH environment variable
-  char *path_variable = getenv("PATH");
-  if (!path_variable) {
-    perror("Path Variable Not Found");
-    return;
-  }
-
-  // Copy the PATH variable to avoid modifying the original
-  char *path_variable_copy = strdup(path_variable);
-  char *token = strtok(path_variable_copy, ":");
-
-  while (token != NULL) {
-    char *file_with_path =
-        malloc(strlen(token) + strlen("/") + strlen(input) + 1);
-    file_with_path[0] = '\0';
-    strcat(file_with_path, token);
-    strcat(file_with_path, "/");
-    strcat(file_with_path, input);
-
-    if (access(file_with_path, F_OK) == 0) {
-      printf("%s is %s\n", input, file_with_path);
-      found = 1;
-      free(file_with_path);
-      break;
-    }
-    free(file_with_path);
-    token = strtok(NULL, ":");
-  }
-
-  free(path_variable_copy);
-
-  if (!found) {
-    printf("%s: not found\n", input);
-  }
-}
-
-char *getfilepath(char *file) {
-  char *path = getenv("PATH");
-  if (!path)
-    return NULL;
-  char *path_copy = strdup(path);
-  char *token = strtok(path_copy, ":");
-  while (token != NULL) {
-    char *full_path = malloc(strlen(token) + strlen(file) + 2);
-    sprintf(full_path, "%s/%s", token, file);
-    if (access(full_path, F_OK) == 0) {
-      free(path_copy);
-      return full_path;
-    }
-    free(full_path);
-    token = strtok(NULL, ":");
-  }
-  free(path_copy);
-  return NULL;
-}
-
+// For tab-completion
 char *command_generator(const char *text, int state) {
-  static int list_index;
-  static int len;
+  static int list_index = 0;
+  static int len = 0;
 
   if (!state) {
     list_index = 0;
@@ -137,9 +127,7 @@ char *command_generator(const char *text, int state) {
   }
 
   while (builtin_commands_array[list_index]) {
-    const char *cmd = builtin_commands_array[list_index];
-    list_index++;
-
+    const char *cmd = builtin_commands_array[list_index++];
     if (strncmp(cmd, text, len) == 0) {
       return strdup(cmd);
     }
@@ -149,53 +137,52 @@ char *command_generator(const char *text, int state) {
 }
 
 char **command_completion(const char *text, int start, int end) {
-  rl_attempted_completion_over = 1; // Prevent filename completion
+  rl_attempted_completion_over = 1;
   return rl_completion_matches(text, command_generator);
 }
 
+// Main shell loop
 int main() {
-  setbuf(stdout, NULL); // Flush after every printf
+  setbuf(stdout, NULL);
+  rl_attempted_completion_function = command_completion;
 
-  char input[100];
-  rl_attempted_completion_function =   command_completion;
   while (1) {
     char *line = readline("\x1b[0;32m$\x1b[0m ");
-    if(!line) break;
-    
-    if(strlen(line)==0) {
+    if (!line)
+      break;
+
+    if (strlen(line) == 0) {
       free(line);
       continue;
     }
+
     add_history(line);
-    strcpy(input, line);
+
+    if (strcmp(line, "exit 0") == 0) {
+      free(line);
+      break;
+    }
+
+    if (strncmp(line, "echo", 4) == 0 && (line[4] == ' ' || line[4] == '\0')) {
+      printf("%s\n", line + 5);
+      free(line);
+      continue;
+    }
+
+    if (strncmp(line, "type", 4) == 0 && (line[4] == ' ' || line[4] == '\0')) {
+      check_if_type_exists(line);
+      free(line);
+      continue;
+    }
+
+    if (strcmp(line, "pwd") == 0) {
+      print_cwd();
+      free(line);
+      continue;
+    }
+
+    execute_command(line);
     free(line);
-
-    // Handle exit 0 command
-    if (strcmp(input, "exit 0") == 0) {
-      return 0;
-    }
-
-    // Handle echo command
-    if (strncmp(input, "echo", 4) == 0) {
-      printf("%s\n", input + 5);
-      continue;
-    }
-
-    // Handle type command
-    if (strncmp(input, "type", 4) == 0) {
-      check_if_type_exists(input);
-      continue;
-    }
-
-    // Handle pwd command
-    if (strcmp(input, "pwd") == 0) {
-      print_cwd(input);
-      continue;
-    }
-    // Execute the command
-    if (execute_command(input) == 0) {
-      continue;
-    }
   }
 
   return 0;

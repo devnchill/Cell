@@ -1,4 +1,6 @@
 #include <stdio.h>
+#include <dirent.h>   
+#include <sys/types.h> 
 #include <readline/history.h>
 #include <readline/readline.h>
 #include <limits.h>
@@ -7,14 +9,17 @@
 #include <unistd.h>
 
 // Function prototype
-char *getfilepath(char *file);
+char *getfilepath(char *fileName);
 void print_cwd(void);
-void check_if_type_exists(char *input);
-int is_builtin(char *input);
+void check_if_type_exists(char *type);
+int is_builtin(char *command);
 int execute_command(char *command);
 
 // Builtin commands
 char *builtin_commands_array[] = {"echo", "type", "exit", "pwd", NULL};
+#define MAX_EXTERNAL_CMDS 1024
+char **external_commands_array = NULL;
+int external_command_count = 0;
 
 // Print current working directory
 void print_cwd(void) {
@@ -117,24 +122,79 @@ int execute_command(char *command) {
 }
 
 // For tab-completion
+void populate_external_commands() {
+    char *path = getenv("PATH");
+    if (!path) return;
+
+    char *path_copy = strdup(path);
+    char *dir = strtok(path_copy, ":");
+    int capacity = 256; // initial guess
+    external_commands_array = malloc(capacity * sizeof(char *));
+
+    while (dir) {
+        DIR *dp = opendir(dir);
+        if (dp) {
+            struct dirent *entry;
+            while ((entry = readdir(dp))) {
+                char fullpath[PATH_MAX];
+                snprintf(fullpath, sizeof(fullpath), "%s/%s", dir, entry->d_name);
+                if (access(fullpath, X_OK) == 0 ) {
+                    // Avoid duplicates
+                    int duplicate = 0;
+                    for (int i = 0; i < external_command_count; i++) {
+                        if (strcmp(external_commands_array[i], entry->d_name) == 0) {
+                            duplicate = 1;
+                            break;
+                        }
+                    }
+                    if (!duplicate) {
+                        if (external_command_count >= capacity) {
+                            capacity *= 2;
+                            external_commands_array = realloc(external_commands_array, capacity * sizeof(char *));
+                        }
+                        external_commands_array[external_command_count++] = strdup(entry->d_name);
+                    }
+                }
+            }
+            closedir(dp);
+        }
+        dir = strtok(NULL, ":");
+    }
+
+    free(path_copy);
+}
+
+
 char *command_generator(const char *text, int state) {
   static int list_index = 0;
   static int len = 0;
+  static int in_builtin = 1;
 
   if (!state) {
     list_index = 0;
     len = strlen(text);
+    in_builtin = 1;
   }
 
-  while (builtin_commands_array[list_index]) {
-    const char *cmd = builtin_commands_array[list_index++];
-    if (strncmp(cmd, text, len) == 0) {
-      return strdup(cmd);
+  if (in_builtin) {
+    while (builtin_commands_array[list_index]) {
+      const char *cmd = builtin_commands_array[list_index++];
+      if (strncmp(cmd, text, len) == 0)
+        return strdup(cmd);
     }
+    in_builtin = 0;
+    list_index = 0;
+  }
+
+  while (list_index < external_command_count) {
+    const char *cmd = external_commands_array[list_index++];
+    if (strncmp(cmd, text, len) == 0)
+      return strdup(cmd);
   }
 
   return NULL;
 }
+
 
 char **command_completion(const char *text, int start, int end) {
   rl_attempted_completion_over = 1;
@@ -144,6 +204,7 @@ char **command_completion(const char *text, int start, int end) {
 // Main shell loop
 int main() {
   setbuf(stdout, NULL);
+  populate_external_commands();
   rl_attempted_completion_function = command_completion;
 
   while (1) {
@@ -185,5 +246,10 @@ int main() {
     free(line);
   }
 
+  for (int i = 0; i < external_command_count; i++) {
+    free(external_commands_array[i]);
+  }
+
+  free(external_commands_array);
   return 0;
 }

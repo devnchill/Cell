@@ -205,7 +205,7 @@ void print_history(){
   HIST_ENTRY **hist_list = history_list();
   if(hist_list){
     for (int i = 0;hist_list[i];i++) {
-      printf("    %d: %s\n", i + history_base, hist_list[i]->line);
+      printf("    %d %s\n", i + history_base, hist_list[i]->line);
     }
   }
 }

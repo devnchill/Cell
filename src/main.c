@@ -16,7 +16,7 @@ int is_builtin(char *command);
 int execute_command(char *command);
 
 // Builtin commands
-char *builtin_commands_array[] = {"echo", "type", "exit", "pwd", NULL};
+char *builtin_commands_array[] = {"echo","history", "type", "exit", "pwd", NULL};
 #define MAX_EXTERNAL_CMDS 1024
 char **external_commands_array = NULL;
 int external_command_count = 0;
@@ -201,6 +201,14 @@ char **command_completion(const char *text, int start, int end) {
   return rl_completion_matches(text, command_generator);
 }
 
+void print_history(){
+  HIST_ENTRY **hist_list = history_list();
+  if(hist_list){
+    for (int i = 0;hist_list[i];i++) {
+      printf("%d: %s\n", i + history_base, hist_list[i]->line);
+    }
+  }
+}
 // Main shell loop
 int main() {
   setbuf(stdout, NULL);
@@ -241,7 +249,12 @@ int main() {
       free(line);
       continue;
     }
-
+    if (strcmp(line, "history") == 0) {
+          print_history();
+          free(line);
+          continue;
+    }
+    
     execute_command(line);
     free(line);
   }

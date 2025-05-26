@@ -220,6 +220,15 @@ void print_history(char *line){
   }
 }
 
+void change_directory(char *line){
+  if(strlen(line)==2) return; //TODO: maybe in later stage.
+  char *path = line + 2;
+  int i = 0;
+  while(*path==' ')path++;
+  if(*path=='\0') return;
+  if(chdir(path)!=0) fprintf(stderr,"cd: %s: No such file or directory\n",path);
+}
+
 // Main shell loop
 int main() {
   setbuf(stdout, NULL);
@@ -265,7 +274,13 @@ int main() {
       free(line);
       continue;
     }
-    
+
+    if (strncmp(line, "cd",2) == 0) {
+      change_directory(line);
+      free(line);
+      continue;
+    }
+
     execute_command(line);
     free(line);
   }

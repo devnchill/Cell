@@ -244,19 +244,41 @@ void change_directory(char *line) {
     fprintf(stderr, "cd: %s: No such file or directory\n", path);
 }
 
-char* trim_whitespace(char *line){
-  //trime leading whitespace 
-  while(*line == ' ')line++;
-  char *end = line + strlen(line)-1;
-  while(end >=line && *end == ' '){
-    *end ='\0';
-    end --;
+char *trim_whitespace(char *line) {
+  // trime leading whitespace
+  while (*line == ' ')
+    line++;
+  char *end = line + strlen(line) - 1;
+  while (end >= line && *end == ' ') {
+    *end = '\0';
+    end--;
   }
   return line;
 }
 
+void write_to_file(char *cmd, char *filepath) {
+  FILE *pipe_fp = popen(cmd, "r");
+  if (pipe_fp == NULL) {
+    printf("Failed to run command %s\n", cmd);
+    return;
+  }
+  FILE *file_fp = fopen(filepath, "w");
+  if (file_fp == NULL) {
+    printf("Failed to open file %s for writing\n", filepath);
+    pclose(pipe_fp);
+    return;
+  }
+
+  char buffer[1024];
+  while (fgets(buffer, sizeof(buffer), pipe_fp) != NULL) {
+    fputs(buffer, file_fp);
+  }
+
+  fclose(file_fp);
+  pclose(pipe_fp);
+}
+
 void redirect_input(char *line) {
-  printf("Redirecting input");
   // index which will store upto char just before "1>". so i can later extract
   // command from 0 to index.
   int index = 0;
@@ -278,6 +300,7 @@ void redirect_input(char *line) {
   char *cmd_start = cmd;
   cmd = trim_whitespace(cmd);
   file_path = trim_whitespace(file_path);
+  write_to_file(cmd, file_path);
   free(cmd_start);
   return;
 }

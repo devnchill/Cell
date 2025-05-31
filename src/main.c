@@ -1,9 +1,9 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <limits.h>
-#include <stdio.h>
 #include <readline/history.h>
 #include <readline/readline.h>
+#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -27,9 +27,10 @@ char **external_commands_array = NULL;
 int external_command_count = 0;
 
 typedef struct {
-  char **cmd_args;  // command and its args before redirection
-  char *redir_file; // file after 1> or 2>
-  int redir_fd;     // 1 for stdout, 2 for stderr, 0 if no redirection
+  char **cmd_args;
+  char *redir_file;
+  int redir_fd;
+  int append;
 } parsed_command_t;
 
 // Print current working directory
@@ -106,22 +107,28 @@ void check_if_type_exists(char *input) {
 }
 
 parsed_command_t parse_redirection(char **argv) {
-  parsed_command_t result = {NULL, NULL, 0};
+  parsed_command_t result = {NULL, NULL, 0, 0}; // default append = 0
   int i = 0;
-  // Find redirection token
   while (argv[i] != NULL) {
-    if (strcmp(argv[i], ">") == 0 || strcmp(argv[i], "1>") == 0) {
+    if (strcmp(argv[i], ">>") == 0 || strcmp(argv[i], "1>>") == 0) {
       result.redir_fd = 1;
+      result.append = 1;
+      break;
+    } else if (strcmp(argv[i], "2>>") == 0) {
+      result.redir_fd = 2;
+      result.append = 1;
+      break;
+    } else if (strcmp(argv[i], ">") == 0 || strcmp(argv[i], "1>") == 0) {
+      result.redir_fd = 1;
+      result.append = 0;
       break;
     } else if (strcmp(argv[i], "2>") == 0) {
       result.redir_fd = 2;
+      result.append = 0;
       break;
     }
-
     i++;
   }
-
-  // Copy command args before redirection
   result.cmd_args = malloc((i + 1) * sizeof(char *));
   for (int j = 0; j < i; j++) {
     result.cmd_args[j] = argv[j];
@@ -200,7 +207,10 @@ void execute_command(char *command) {
 
   // If redirection is requested
   if (parsed.redir_fd != 0 && parsed.redir_file != NULL) {
-    fd = open(parsed.redir_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    int flags = O_WRONLY | O_CREAT;
+    flags |= parsed.append ? O_APPEND : O_TRUNC;
+
+    fd = open(parsed.redir_file, flags, 0644);
     if (fd < 0) {
       perror("open");
       goto cleanup;

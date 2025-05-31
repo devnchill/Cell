@@ -1,11 +1,13 @@
-#include <stdio.h>
 #include <dirent.h>
+#include <fcntl.h>
 #include <limits.h>
+#include <stdio.h>
 #include <readline/history.h>
 #include <readline/readline.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
+#include <sys/wait.h>
 #include <unistd.h>
 
 // Function prototype
@@ -13,7 +15,9 @@ char *getfilepath(char *fileName);
 void print_cwd(void);
 void check_if_type_exists(char *type);
 int is_builtin(char *command);
-int execute_command(char *command);
+void print_history(char *line);
+void change_directory(char *line);
+void execute_command(char *command);
 
 // Builtin commands
 char *builtin_commands_array[] = {"echo", "cd",  "history", "type",
@@ -21,6 +25,12 @@ char *builtin_commands_array[] = {"echo", "cd",  "history", "type",
 #define MAX_EXTERNAL_CMDS 1024
 char **external_commands_array = NULL;
 int external_command_count = 0;
+
+typedef struct {
+  char **cmd_args;  // command and its args before redirection
+  char *redir_file; // file after 1> or 2>
+  int redir_fd;     // 1 for stdout, 2 for stderr, 0 if no redirection
+} parsed_command_t;
 
 // Print current working directory
 void print_cwd(void) {
@@ -61,7 +71,7 @@ char *getfilepath(char *file) {
     sprintf(full_path, "%s/%s", token, file);
     if (access(full_path, F_OK) == 0) {
       free(path_copy);
-      return full_path; // Caller must free
+      return full_path;
     }
     free(full_path);
     token = strtok(NULL, ":");
@@ -74,7 +84,7 @@ char *getfilepath(char *file) {
 void check_if_type_exists(char *input) {
   char *arg = input + 5; // skip "type "
   while (*arg == ' ')
-    arg++; // trim spaces
+    arg++;
 
   if (strlen(arg) == 0) {
     printf("type: missing argument\n");
@@ -95,31 +105,153 @@ void check_if_type_exists(char *input) {
   }
 }
 
-// Execute external command using system()
-int execute_command(char *command) {
-  char *command_copy = strdup(command);
-  if (!command_copy) {
-    perror("strdup");
-    return -1;
+parsed_command_t parse_redirection(char **argv) {
+  parsed_command_t result = {NULL, NULL, 0};
+  int i = 0;
+  // Find redirection token
+  while (argv[i] != NULL) {
+    if (strcmp(argv[i], ">") == 0 || strcmp(argv[i], "1>") == 0) {
+      result.redir_fd = 1;
+      break;
+    } else if (strcmp(argv[i], "2>") == 0) {
+      result.redir_fd = 2;
+      break;
+    }
+
+    i++;
   }
 
-  char *first_word = strtok(command_copy, " ");
-  if (!first_word) {
-    free(command_copy);
-    return -1;
+  // Copy command args before redirection
+  result.cmd_args = malloc((i + 1) * sizeof(char *));
+  for (int j = 0; j < i; j++) {
+    result.cmd_args[j] = argv[j];
+  }
+  result.cmd_args[i] = NULL;
+  if (argv[i] != NULL && argv[i + 1] != NULL) {
+    result.redir_file = argv[i + 1];
+  }
+  return result;
+}
+
+char **parse_cmd(char *command) {
+  int capacity = 8;
+  char **argv = malloc(capacity * sizeof(char *));
+  int argc = 0;
+
+  char *p = command;
+  while (*p) {
+    while (*p == ' ' || *p == '\t')
+      p++; // skip spaces
+
+    if (*p == '\0')
+      break;
+
+    char *start;
+    if (*p == '\'' || *p == '"') {
+      char quote = *p++;
+      start = p;
+      while (*p && *p != quote)
+        p++;
+    } else {
+      start = p;
+      while (*p && *p != ' ' && *p != '\t')
+        p++;
+    }
+
+    size_t len = p - start;
+    char *arg = malloc(len + 1);
+    strncpy(arg, start, len);
+    arg[len] = '\0';
+
+    if (argc >= capacity) {
+      capacity *= 2;
+      argv = realloc(argv, capacity * sizeof(char *));
+    }
+    argv[argc++] = arg;
+
+    if (*p)
+      p++;
   }
 
-  char *path = getfilepath(first_word);
-  if (path) {
-    int status = system(command);
-    free(path);
-    free(command_copy);
-    return status == -1 ? -1 : 0;
+  argv[argc] = NULL;
+  return argv;
+}
+
+// Execute external command
+
+void execute_command(char *command) {
+  char **argv = parse_cmd(command);
+  if (!argv)
+    return;
+
+  parsed_command_t parsed = parse_redirection(argv);
+  char *cmd = parsed.cmd_args[0];
+
+  if (!cmd) {
+    free(argv);
+    free(parsed.cmd_args);
+    return;
+  }
+
+  int is_builtin_cmd = is_builtin(cmd);
+
+  int saved_fd = -1;
+  int fd = -1;
+
+  // If redirection is requested
+  if (parsed.redir_fd != 0 && parsed.redir_file != NULL) {
+    fd = open(parsed.redir_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+    if (fd < 0) {
+      perror("open");
+      goto cleanup;
+    }
+    // Save original stdout/stderr
+    saved_fd = dup(parsed.redir_fd);
+    dup2(fd, parsed.redir_fd);
+    close(fd);
+  }
+
+  if (is_builtin_cmd) {
+    // Handle builtin commands
+    if (strcmp(cmd, "echo") == 0) {
+      for (int i = 1; parsed.cmd_args[i]; i++) {
+        printf("%s", parsed.cmd_args[i]);
+        if (parsed.cmd_args[i + 1])
+          printf(" ");
+      }
+      printf("\n");
+    } else if (strcmp(cmd, "pwd") == 0) {
+      print_cwd();
+    } else if (strcmp(cmd, "type") == 0) {
+      check_if_type_exists(command);
+    } else if (strcmp(cmd, "history") == 0) {
+      print_history(command);
+    } else if (strcmp(cmd, "cd") == 0) {
+      change_directory(command);
+    }
   } else {
-    printf("%s: command not found\n", first_word);
-    free(command_copy);
-    return -1;
+    // External command
+    int pid = fork();
+    if (pid == 0) {
+      execvp(parsed.cmd_args[0], parsed.cmd_args);
+      fprintf(stderr, "%s: command not found\n", parsed.cmd_args[0]);
+      _exit(1);
+    } else {
+      waitpid(pid, NULL, 0);
+    }
   }
+
+  // Restore stdout/stderr
+  if (saved_fd != -1) {
+    dup2(saved_fd, parsed.redir_fd);
+    close(saved_fd);
+  }
+
+cleanup:
+  for (int i = 0; argv[i] != NULL; i++)
+    free(argv[i]);
+  free(argv);
+  free(parsed.cmd_args);
 }
 
 // For tab-completion
@@ -132,7 +264,6 @@ void populate_external_commands() {
   char *dir = strtok(path_copy, ":");
   int capacity = 256; // initial guess
   external_commands_array = malloc(capacity * sizeof(char *));
-
   while (dir) {
     DIR *dp = opendir(dir);
     if (dp) {
@@ -278,34 +409,8 @@ void write_to_file(char *cmd, char *filepath) {
   pclose(pipe_fp);
 }
 
-void redirect_input(char *line) {
-  // index which will store upto char just before "1>". so i can later extract
-  // command from 0 to index.
-  int index = 0;
-  // to take original input and extract file to write.
-  char *file_path = line;
-  while (*file_path != '\0') {
-    if (*file_path == '1' && *(file_path + 1) == '>') {
-      file_path += 2;
-      break;
-    }
-    file_path++;
-    index++;
-  }
-  char *cmd = malloc((index + 1) * sizeof(char));
-  for (int i = 0; i < index; i++) {
-    cmd[i] = line[i];
-  }
-  cmd[index] = '\0';
-  char *cmd_start = cmd;
-  cmd = trim_whitespace(cmd);
-  file_path = trim_whitespace(file_path);
-  write_to_file(cmd, file_path);
-  free(cmd_start);
-  return;
-}
-
 // Main shell loop
+
 int main() {
   setbuf(stdout, NULL);
   populate_external_commands();
@@ -326,40 +431,6 @@ int main() {
     if (strcmp(line, "exit 0") == 0) {
       free(line);
       break;
-    }
-
-    if (strstr(line, "1>") != NULL) {
-      redirect_input(line);
-      continue;
-    }
-
-    if (strncmp(line, "echo", 4) == 0 && (line[4] == ' ' || line[4] == '\0')) {
-      printf("%s\n", line + 5);
-      free(line);
-      continue;
-    }
-
-    if (strncmp(line, "type", 4) == 0 && (line[4] == ' ' || line[4] == '\0')) {
-      check_if_type_exists(line);
-      free(line);
-      continue;
-    }
-
-    if (strcmp(line, "pwd") == 0) {
-      print_cwd();
-      free(line);
-      continue;
-    }
-    if (strncmp(line, "history", 7) == 0) {
-      print_history(line);
-      free(line);
-      continue;
-    }
-
-    if (strncmp(line, "cd", 2) == 0) {
-      change_directory(line);
-      free(line);
-      continue;
     }
 
     execute_command(line);

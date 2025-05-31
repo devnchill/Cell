@@ -145,43 +145,66 @@ char **parse_cmd(char *command) {
   char **argv = malloc(capacity * sizeof(char *));
   int argc = 0;
 
-  char *current_arg = malloc(256);
-  int current_len = 0;
-  int in_quotes = 0;
-  char quote_char = '\0';
+  char *arg_buf = malloc(1024);
+  int len = 0;
+
+  int in_single = 0, in_double = 0;
 
   for (char *p = command; *p; p++) {
-    if (in_quotes) {
-      if (*p == quote_char) {
-        in_quotes = 0;
+    char c = *p;
+
+    if (in_single) {
+      if (c == '\'') {
+        in_single = 0;
       } else {
-        current_arg[current_len++] = *p;
+        arg_buf[len++] = c;
+      }
+    } else if (in_double) {
+      if (c == '"') {
+        in_double = 0;
+      } else if (c == '\\') {
+        p++;
+        if (*p == '"' || *p == '\\' || *p == '$' || *p == '`') {
+          arg_buf[len++] = *p;
+        } else {
+          arg_buf[len++] = '\\';
+          if (*p)
+            arg_buf[len++] = *p;
+        }
+      } else {
+        arg_buf[len++] = c;
       }
     } else {
-      if (*p == '\'' || *p == '"') {
-        in_quotes = 1;
-        quote_char = *p;
-      } else if (*p == ' ' || *p == '\t') {
-        if (current_len > 0) {
-          current_arg[current_len] = '\0';
-          argv[argc++] = strdup(current_arg);
+      if (isspace(c)) {
+        if (len > 0) {
+          arg_buf[len] = '\0';
+          argv[argc++] = strdup(arg_buf);
+          len = 0;
           if (argc >= capacity) {
             capacity *= 2;
             argv = realloc(argv, capacity * sizeof(char *));
           }
-          current_len = 0;
         }
+      } else if (c == '\'') {
+        in_single = 1;
+      } else if (c == '"') {
+        in_double = 1;
+      } else if (c == '\\') {
+        p++;
+        if (*p)
+          arg_buf[len++] = *p;
       } else {
-        current_arg[current_len++] = *p;
+        arg_buf[len++] = c;
       }
     }
   }
 
-  if (current_len > 0) {
-    current_arg[current_len] = '\0';
-    argv[argc++] = strdup(current_arg);
+  if (len > 0) {
+    arg_buf[len] = '\0';
+    argv[argc++] = strdup(arg_buf);
   }
-  free(current_arg);
+
+  free(arg_buf);
   argv[argc] = NULL;
   return argv;
 }

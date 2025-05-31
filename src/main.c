@@ -18,6 +18,7 @@ int is_builtin(char *command);
 void print_history(char *line);
 void change_directory(char *line);
 void execute_command(char *command);
+char *trim_whitespace(char *line);
 
 // Builtin commands
 char *builtin_commands_array[] = {"echo", "cd",  "history", "type",
@@ -209,16 +210,109 @@ char **parse_cmd(char *command) {
   return argv;
 }
 
-// Execute external command
+void execute_pipeline(char *cmdline) {
+  // Count number of pipes
+  int count = 1;
+  for (char *p = cmdline; *p; p++) {
+    if (*p == '|')
+      count++;
+  }
 
+  int pipefd[2 * (count - 1)];
+  for (int i = 0; i < count - 1; i++) {
+    if (pipe(pipefd + i * 2) < 0) {
+      perror("pipe");
+      return;
+    }
+  }
+
+  int i = 0;
+  char *cmd = strtok(cmdline, "|");
+  while (cmd) {
+    cmd = trim_whitespace(cmd);
+    char **argv = parse_cmd(cmd);
+    if (!argv || !argv[0]) {
+      free(argv);
+      break;
+    }
+    pid_t pid = fork();
+    if (pid == 0) {
+      // Setup pipe read from previous pipe (if not first)
+      if (i > 0) {
+        if (dup2(pipefd[(i - 1) * 2], STDIN_FILENO) < 0) {
+          perror("dup2");
+          exit(1);
+        }
+      }
+
+      // Setup pipe write to next pipe (if not last)
+      if (i < count - 1) {
+        if (dup2(pipefd[i * 2 + 1], STDOUT_FILENO) < 0) {
+          perror("dup2");
+          exit(1);
+        }
+      }
+
+      // Close all pipe fds in child
+      for (int j = 0; j < 2 * (count - 1); j++) {
+        close(pipefd[j]);
+      }
+
+      if (is_builtin(argv[0])) {
+        // Run builtin in child process for pipeline
+        // You can add your builtin handling logic here, e.g.:
+        if (strcmp(argv[0], "echo") == 0) {
+          for (int k = 1; argv[k]; k++) {
+            printf("%s", argv[k]);
+            if (argv[k + 1])
+              printf(" ");
+          }
+          printf("\n");
+          exit(0);
+        }
+        // Add other builtins as needed
+        exit(0);
+      } else {
+        execvp(argv[0], argv);
+        perror("execvp");
+        exit(1);
+      }
+    }
+
+    // Parent continues
+    for (int k = 0; argv[k]; k++)
+      free(argv[k]);
+    free(argv);
+
+    cmd = strtok(NULL, "|");
+    i++;
+  }
+
+  // Close all pipe fds in parent
+  for (int j = 0; j < 2 * (count - 1); j++) {
+    close(pipefd[j]);
+  }
+
+  // Wait for all children
+  for (int j = 0; j < count; j++) {
+    wait(NULL);
+  }
+}
+
+// Execute external command
 void execute_command(char *command) {
+  if (strchr(command, '|')) {
+    // Make a copy since strtok modifies string
+    char *cmd_copy = strdup(command);
+    execute_pipeline(cmd_copy);
+    free(cmd_copy);
+    return;
+  }
   char **argv = parse_cmd(command);
   if (!argv)
     return;
-
   parsed_command_t parsed = parse_redirection(argv);
   char *cmd = parsed.cmd_args[0];
-
   if (!cmd) {
     free(argv);
     free(parsed.cmd_args);
@@ -229,18 +323,14 @@ void execute_command(char *command) {
 
   int saved_fd = -1;
   int fd = -1;
-
-  // If redirection is requested
   if (parsed.redir_fd != 0 && parsed.redir_file != NULL) {
     int flags = O_WRONLY | O_CREAT;
     flags |= parsed.append ? O_APPEND : O_TRUNC;
-
     fd = open(parsed.redir_file, flags, 0644);
     if (fd < 0) {
       perror("open");
       goto cleanup;
     }
-    // Save original stdout/stderr
     saved_fd = dup(parsed.redir_fd);
     dup2(fd, parsed.redir_fd);
     close(fd);

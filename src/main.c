@@ -259,8 +259,6 @@ void execute_pipeline(char *cmdline) {
       }
 
       if (is_builtin(argv[0])) {
-        // Run builtin in child process for pipeline
-        // You can add your builtin handling logic here, e.g.:
         if (strcmp(argv[0], "echo") == 0) {
           for (int k = 1; argv[k]; k++) {
             printf("%s", argv[k]);
@@ -269,8 +267,23 @@ void execute_pipeline(char *cmdline) {
           }
           printf("\n");
           exit(0);
+        } else if (strcmp(argv[0], "pwd") == 0) {
+          print_cwd();
+          exit(0);
+        } else if (strcmp(argv[0], "type") == 0) {
+          // Use full command string because check_if_type_exists expects it
+          check_if_type_exists(cmd);
+          exit(0);
+        } else if (strcmp(argv[0], "history") == 0) {
+          print_history(cmd);
+          exit(0);
+        } else if (strcmp(argv[0], "cd") == 0) {
+          change_directory(cmd);
+          exit(0);
+        } else if (strcmp(argv[0], "exit") == 0) {
+          // exit builtin in pipeline child: just exit child
+          exit(0);
         }
-        // Add other builtins as needed
         exit(0);
       } else {
         execvp(argv[0], argv);

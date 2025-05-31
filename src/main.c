@@ -1,9 +1,9 @@
 #include <dirent.h>
 #include <fcntl.h>
 #include <limits.h>
+#include <stdio.h>
 #include <readline/history.h>
 #include <readline/readline.h>
-#include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/types.h>
@@ -145,41 +145,43 @@ char **parse_cmd(char *command) {
   char **argv = malloc(capacity * sizeof(char *));
   int argc = 0;
 
-  char *p = command;
-  while (*p) {
-    while (*p == ' ' || *p == '\t')
-      p++; // skip spaces
+  char *current_arg = malloc(256);
+  int current_len = 0;
+  int in_quotes = 0;
+  char quote_char = '\0';
 
-    if (*p == '\0')
-      break;
-
-    char *start;
-    if (*p == '\'' || *p == '"') {
-      char quote = *p++;
-      start = p;
-      while (*p && *p != quote)
-        p++;
+  for (char *p = command; *p; p++) {
+    if (in_quotes) {
+      if (*p == quote_char) {
+        in_quotes = 0;
+      } else {
+        current_arg[current_len++] = *p;
+      }
     } else {
-      start = p;
-      while (*p && *p != ' ' && *p != '\t')
-        p++;
+      if (*p == '\'' || *p == '"') {
+        in_quotes = 1;
+        quote_char = *p;
+      } else if (*p == ' ' || *p == '\t') {
+        if (current_len > 0) {
+          current_arg[current_len] = '\0';
+          argv[argc++] = strdup(current_arg);
+          if (argc >= capacity) {
+            capacity *= 2;
+            argv = realloc(argv, capacity * sizeof(char *));
+          }
+          current_len = 0;
+        }
+      } else {
+        current_arg[current_len++] = *p;
+      }
     }
-
-    size_t len = p - start;
-    char *arg = malloc(len + 1);
-    strncpy(arg, start, len);
-    arg[len] = '\0';
-
-    if (argc >= capacity) {
-      capacity *= 2;
-      argv = realloc(argv, capacity * sizeof(char *));
-    }
-    argv[argc++] = arg;
-
-    if (*p)
-      p++;
   }
 
+  if (current_len > 0) {
+    current_arg[current_len] = '\0';
+    argv[argc++] = strdup(current_arg);
+  }
+  free(current_arg);
   argv[argc] = NULL;
   return argv;
 }

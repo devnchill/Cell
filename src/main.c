@@ -16,8 +16,8 @@ int is_builtin(char *command);
 int execute_command(char *command);
 
 // Builtin commands
-char *builtin_commands_array[] = {"echo", "history", "type",
-                                  "exit", "pwd",     NULL};
+char *builtin_commands_array[] = {"echo", "cd",  "history", "type",
+                                  "exit", "pwd", NULL};
 #define MAX_EXTERNAL_CMDS 1024
 char **external_commands_array = NULL;
 int external_command_count = 0;
@@ -164,7 +164,6 @@ void populate_external_commands() {
     }
     dir = strtok(NULL, ":");
   }
-
   free(path_copy);
 }
 
@@ -227,6 +226,85 @@ void print_history(char *line) {
   }
 }
 
+void change_directory(char *line) {
+  char *path = line + 2;
+  int i = 0;
+  while (*path == ' ')
+    path++;
+  if (*path == '\0')
+    return;
+  if (strcmp(path, "~") == 0) {
+    path = getenv("HOME");
+    if (!path) {
+      fprintf(stderr, "cd: HOME environment variable not set\n");
+      return;
+    }
+  }
+  if (chdir(path) != 0)
+    fprintf(stderr, "cd: %s: No such file or directory\n", path);
+}
+
+char *trim_whitespace(char *line) {
+  // trime leading whitespace
+  while (*line == ' ')
+    line++;
+  char *end = line + strlen(line) - 1;
+  while (end >= line && *end == ' ') {
+    *end = '\0';
+    end--;
+  }
+  return line;
+}
+
+void write_to_file(char *cmd, char *filepath) {
+  FILE *pipe_fp = popen(cmd, "r");
+  if (pipe_fp == NULL) {
+    printf("Failed to run command %s\n", cmd);
+    return;
+  }
+  FILE *file_fp = fopen(filepath, "w");
+  if (file_fp == NULL) {
+    printf("Failed to open file %s for writing\n", filepath);
+    pclose(pipe_fp);
+    return;
+  }
+
+  char buffer[1024];
+  while (fgets(buffer, sizeof(buffer), pipe_fp) != NULL) {
+    fputs(buffer, file_fp);
+  }
+
+  fclose(file_fp);
+  pclose(pipe_fp);
+}
+
+void redirect_input(char *line) {
+  // index which will store upto char just before "1>". so i can later extract
+  // command from 0 to index.
+  int index = 0;
+  // to take original input and extract file to write.
+  char *file_path = line;
+  while (*file_path != '\0') {
+    if (*file_path == '1' && *(file_path + 1) == '>') {
+      file_path += 2;
+      break;
+    }
+    file_path++;
+    index++;
+  }
+  char *cmd = malloc((index + 1) * sizeof(char));
+  for (int i = 0; i < index; i++) {
+    cmd[i] = line[i];
+  }
+  cmd[index] = '\0';
+  char *cmd_start = cmd;
+  cmd = trim_whitespace(cmd);
+  file_path = trim_whitespace(file_path);
+  write_to_file(cmd, file_path);
+  free(cmd_start);
+  return;
+}
+
 // Main shell loop
 int main() {
   setbuf(stdout, NULL);
@@ -250,6 +328,11 @@ int main() {
       break;
     }
 
+    if (strstr(line, "1>") != NULL) {
+      redirect_input(line);
+      continue;
+    }
+
     if (strncmp(line, "echo", 4) == 0 && (line[4] == ' ' || line[4] == '\0')) {
       printf("%s\n", line + 5);
       free(line);
@@ -269,6 +352,12 @@ int main() {
     }
     if (strncmp(line, "history", 7) == 0) {
       print_history(line);
+      free(line);
+      continue;
+    }
+
+    if (strncmp(line, "cd", 2) == 0) {
+      change_directory(line);
       free(line);
       continue;
     }

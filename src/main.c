@@ -24,6 +24,16 @@ int builtin_echo(int argc, char **argv) {
   }
   return 0;
 }
+int builtin_type(int argc, char **argv) {
+  char *cmd = argv[1];
+  shell_builtin *builtin = hashmap_get(argv[1]);
+  if (builtin != NULL) {
+    printf("%s is a shell builtin\n", cmd);
+  } else {
+    printf("%s: not found\n", cmd);
+  }
+  return 0;
+}
 
 void add_builtins(void) {
   // exit
@@ -38,6 +48,12 @@ void add_builtins(void) {
   echo.info = "print everything after echo";
   echo.func = builtin_echo;
   hashmap_add(echo.command, echo);
+
+  shell_builtin type;
+  type.command = "type";
+  type.info = "check whether the type of command is builtin or not";
+  type.func = builtin_type;
+  hashmap_add(type.command, type);
 }
 
 int main(int argc, char *argv[]) {

@@ -14,13 +14,30 @@ void get_command(char *command, size_t size) {
 }
 
 int builtin_exit(int argc, char **argv) { exit(0); }
+int builtin_echo(int argc, char **argv) {
+  for (int i = 1; i < argc; i++) {
+    printf("%s", argv[i]);
+    if (i < argc - 1)
+      printf(" ");
+    else
+      printf("\n");
+  }
+  return 0;
+}
 
 void add_builtins(void) {
-  shell_builtin e;
-  e.command = "exit";
-  e.info = "terminate the program with return code 0";
-  e.func = builtin_exit;
-  hashmap_add(e.command, e);
+  // exit
+  shell_builtin exit;
+  exit.command = "exit";
+  exit.info = "terminate the program with return code 0";
+  exit.func = builtin_exit;
+  hashmap_add(exit.command, exit);
+
+  shell_builtin echo;
+  echo.command = "echo";
+  echo.info = "print everything after echo";
+  echo.func = builtin_echo;
+  hashmap_add(echo.command, echo);
 }
 
 int main(int argc, char *argv[]) {
@@ -36,9 +53,21 @@ int main(int argc, char *argv[]) {
 
     get_command(command, sizeof(command));
 
-    shell_builtin *builtin = hashmap_get(command);
+    if (command[0] == '\0')
+      continue;
+
+    char *argv[128];
+    int argc = 0;
+
+    char *token = strtok(command, " ");
+    while (token != NULL && argc < 128) {
+      argv[argc++] = token;
+      token = strtok(NULL, " ");
+    }
+
+    shell_builtin *builtin = hashmap_get(argv[0]);
     if (builtin != NULL) {
-      builtin->func(0, NULL);
+      builtin->func(argc, argv);
       continue;
     }
 

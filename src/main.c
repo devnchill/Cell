@@ -4,13 +4,28 @@
 #include <stdlib.h>
 #include <string.h>
 
-// TODO: will probably create a hashmap of type shell_builtin.command ->
-// shell_builtin;
+typedef struct parsed_command {
+  int argc;
+  char **argv;
+} pc;
 
-void get_command(char *command, size_t size) {
+pc parse_command(char *command, size_t size) {
+  pc p = {0};
+
   fgets(command, size, stdin);
   command[strcspn(command, "\n")] = '\0';
-  return;
+
+  p.argv = malloc(128 * sizeof(char *));
+  if (!p.argv)
+    return p;
+
+  char *token = strtok(command, " ");
+  while (token && p.argc < 128) {
+    p.argv[p.argc++] = token;
+    token = strtok(NULL, " ");
+  }
+
+  return p;
 }
 
 int builtin_exit(int argc, char **argv) { exit(0); }
@@ -56,38 +71,29 @@ void add_builtins(void) {
   hashmap_add(type.command, type);
 }
 
-int main(int argc, char *argv[]) {
+int main() {
   // Flush after every printf
   setbuf(stdout, NULL);
 
   add_builtins();
-  char command[1024];
+  char raw_command[1024];
 
   while (1) {
 
     printf("$ ");
 
-    get_command(command, sizeof(command));
+    pc command = parse_command(raw_command, sizeof(raw_command));
 
-    if (command[0] == '\0')
+    if (command.argv[0] == NULL)
       continue;
 
-    char *argv[128];
-    int argc = 0;
-
-    char *token = strtok(command, " ");
-    while (token != NULL && argc < 128) {
-      argv[argc++] = token;
-      token = strtok(NULL, " ");
-    }
-
-    shell_builtin *builtin = hashmap_get(argv[0]);
+    shell_builtin *builtin = hashmap_get(command.argv[0]);
     if (builtin != NULL) {
-      builtin->func(argc, argv);
+      builtin->func(command.argc, command.argv);
       continue;
     }
 
-    printf("%s: command not found\n", command);
+    printf("%s: command not found\n", command.argv[0]);
   }
 
   return 0;

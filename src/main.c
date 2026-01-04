@@ -1,5 +1,6 @@
 #include "../include/add_builtins.h"
 #include "../include/hashmap.h"
+#include "../include/run_program.h"
 #include "../include/shell_builtin.h"
 #include <dirent.h>
 #include <stdio.h>
@@ -53,7 +54,9 @@ int main() {
       continue;
     }
 
-    printf("%s: command not found\n", command.argv[0]);
+    if (run_program(command.argc, command.argv) == -1) {
+      printf("%s: command not found\n", command.argv[0]);
+    }
   }
 
   return 0;

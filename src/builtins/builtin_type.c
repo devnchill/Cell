@@ -1,8 +1,7 @@
 #include "../../include/hashmap.h"
+#include "../../include/is_present_in_path.h"
 #include "../../include/shell_builtin.h"
 #include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include <unistd.h>
 
 int builtin_type(int argc, char **argv) {
@@ -12,24 +11,11 @@ int builtin_type(int argc, char **argv) {
     printf("%s is a shell builtin\n", cmd);
     return 0;
   }
-  char *path = getenv("PATH");
-  if (path == NULL) {
-    printf("path not found\n");
-    return -1;
+  executable_in_system_path eisp = executable_is_present(cmd);
+  if (eisp.is_present) {
+    printf("%s is %s\n", cmd, eisp.full_path);
+  } else {
+    printf("%s: not found\n", cmd);
   }
-  char *path_copy = strdup(path);
-  char *token = strtok(path_copy, ":");
-  while (token) {
-    char full_path[1024];
-    snprintf(full_path, sizeof(full_path), "%s/%s", token, cmd);
-    if (access(full_path, X_OK) == 0) {
-      printf("%s is %s\n", cmd, full_path);
-      free(path_copy);
-      return 0;
-    }
-    token = strtok(NULL, ":");
-  }
-  free(path_copy);
-  printf("%s: not found\n", cmd);
   return 0;
 }

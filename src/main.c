@@ -43,12 +43,19 @@ int main() {
 
   while (1) {
 
+    setbuf(stdout, NULL);
+
     printf("$ ");
 
     pc command = parse_command(raw_command, sizeof(raw_command));
 
-    if (!command.argv || !command.argv[0])
+    if (!command.argv) {
+      printf("\n");
       break;
+    }
+
+    if (!command.argv[0])
+      continue;
 
     shell_builtin *builtin = hashmap_get(command.argv[0]);
     if (builtin != NULL) {

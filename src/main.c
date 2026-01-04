@@ -16,7 +16,10 @@ typedef struct parsed_command {
 pc parse_command(char *command, size_t size) {
   pc p = {0};
 
-  fgets(command, size, stdin);
+  if (fgets(command, size, stdin) == NULL) {
+    p.argv = NULL;
+    return p;
+  };
   command[strcspn(command, "\n")] = '\0';
 
   p.argv = malloc(128 * sizeof(char *));
@@ -34,10 +37,8 @@ pc parse_command(char *command, size_t size) {
 }
 
 int main() {
-  // Flush after every printf
-  setbuf(stdout, NULL);
-
   add_builtins();
+
   char raw_command[1024];
 
   while (1) {
@@ -46,12 +47,13 @@ int main() {
 
     pc command = parse_command(raw_command, sizeof(raw_command));
 
-    if (command.argv[0] == NULL)
-      continue;
+    if (!command.argv || !command.argv[0])
+      break;
 
     shell_builtin *builtin = hashmap_get(command.argv[0]);
     if (builtin != NULL) {
       builtin->func(command.argc, command.argv);
+      free(command.argv);
       continue;
     }
 

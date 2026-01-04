@@ -1,6 +1,6 @@
 SRC_DIR := src
 CFLAGS:= -Iinclude
-SOURCES := $(wildcard $(SRC_DIR)/*.c)
+SOURCES := $(shell find src -name '*.c')
 
 build/target: $(SOURCES)
 	mkdir -p build

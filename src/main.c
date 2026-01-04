@@ -24,10 +24,11 @@ pc parse_command(char *command, size_t size) {
     return p;
 
   char *token = strtok(command, " ");
-  while (token && p.argc < 128) {
+  while (token && p.argc < 127) {
     p.argv[p.argc++] = token;
     token = strtok(NULL, " ");
   }
+  p.argv[p.argc] = NULL;
 
   return p;
 }
@@ -57,6 +58,7 @@ int main() {
     if (run_program(command.argc, command.argv) == -1) {
       printf("%s: command not found\n", command.argv[0]);
     }
+    free(command.argv);
   }
 
   return 0;

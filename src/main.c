@@ -37,13 +37,13 @@ pc parse_command(char *command, size_t size) {
 }
 
 int main() {
+  setbuf(stdout, NULL);
+
   add_builtins();
 
   char raw_command[1024];
 
   while (1) {
-
-    setbuf(stdout, NULL);
 
     printf("$ ");
 
@@ -58,7 +58,7 @@ int main() {
       continue;
 
     shell_builtin *builtin = hashmap_get(command.argv[0]);
-    if (builtin != NULL) {
+    if (builtin) {
       builtin->func(command.argc, command.argv);
       free(command.argv);
       continue;

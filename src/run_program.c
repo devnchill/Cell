@@ -11,7 +11,8 @@ int run_program(int argc, char **argv) {
   };
   case 0: {
     execvp(argv[0], argv);
-    return -1;
+    printf("%s: command not found\n", argv[0]);
+    _exit(127);
   };
   default: {
     waitpid(pid, NULL, 0);

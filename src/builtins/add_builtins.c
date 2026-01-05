@@ -1,3 +1,4 @@
+#include "../../include/builtin_cd.h"
 #include "../../include/builtin_echo.h"
 #include "../../include/builtin_exit.h"
 #include "../../include/builtin_pwd.h"
@@ -27,4 +28,9 @@ void add_builtins(void) {
                               .info = "return current working directory",
                               .func = builtin_pwd};
   hashmap_add(pwd.command, pwd);
+
+  static shell_builtin cd = {.command = "cd",
+                             .info = "change current working directory",
+                             .func = builtin_cd};
+  hashmap_add(cd.command, cd);
 }

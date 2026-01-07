@@ -7,6 +7,6 @@ typedef struct tokenized_command {
   char **argv;
 } tc;
 
-tc tokenize_command(char *command, size_t size);
+tc tokenize_command();
 
 #endif

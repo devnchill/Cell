@@ -1,16 +1,13 @@
 #include "../../include/tokenize_command.h"
-#include <stdio.h>
+#include <readline/history.h>
+#include <readline/readline.h>
 #include <stdlib.h>
 #include <string.h>
 
-tc tokenize_command(char *command, size_t size) {
+tc tokenize_command() {
   tc t = {0};
-
-  if (fgets(command, size, stdin) == NULL) {
-    t.argv = NULL;
-    return t;
-  };
-  command[strcspn(command, "\n")] = '\0';
+  char *command = readline("$ ");
+  add_history(command);
 
   t.argv = malloc(128 * sizeof(char *));
   if (!t.argv)

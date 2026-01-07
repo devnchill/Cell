@@ -1,8 +1,8 @@
 #include "../include/add_builtins.h"
 #include "../include/hashmap.h"
-#include "../include/tokenize_command.h"
 #include "../include/run_program.h"
 #include "../include/shell_builtin.h"
+#include "../include/tokenize_command.h"
 #include <dirent.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -13,13 +13,9 @@ int main() {
 
   add_builtins();
 
-  char raw_command[1024];
-
   while (1) {
 
-    printf("$ ");
-
-    tc command = tokenize_command(raw_command, sizeof(raw_command));
+    tc command = tokenize_command();
 
     if (!command.argv) {
       printf("\n");

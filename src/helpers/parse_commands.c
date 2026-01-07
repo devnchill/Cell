@@ -1,26 +1,27 @@
-#include "../../include/parse_command.h"
+#include "../../include/tokenize_command.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
-pc parse_command(char *command, size_t size) {
-  pc p = {0};
+
+tc tokenize_command(char *command, size_t size) {
+  tc t = {0};
 
   if (fgets(command, size, stdin) == NULL) {
-    p.argv = NULL;
-    return p;
+    t.argv = NULL;
+    return t;
   };
   command[strcspn(command, "\n")] = '\0';
 
-  p.argv = malloc(128 * sizeof(char *));
-  if (!p.argv)
-    return p;
+  t.argv = malloc(128 * sizeof(char *));
+  if (!t.argv)
+    return t;
 
   char *token = strtok(command, " ");
-  while (token && p.argc < 127) {
-    p.argv[p.argc++] = token;
+  while (token && t.argc < 127) {
+    t.argv[t.argc++] = token;
     token = strtok(NULL, " ");
   }
-  p.argv[p.argc] = NULL;
+  t.argv[t.argc] = NULL;
 
-  return p;
+  return t;
 }

@@ -1,6 +1,6 @@
 #include "../include/add_builtins.h"
 #include "../include/hashmap.h"
-#include "../include/parse_command.h"
+#include "../include/tokenize_command.h"
 #include "../include/run_program.h"
 #include "../include/shell_builtin.h"
 #include <dirent.h>
@@ -19,7 +19,7 @@ int main() {
 
     printf("$ ");
 
-    pc command = parse_command(raw_command, sizeof(raw_command));
+    tc command = tokenize_command(raw_command, sizeof(raw_command));
 
     if (!command.argv) {
       printf("\n");

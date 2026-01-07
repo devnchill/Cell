@@ -1,4 +1,6 @@
 #include "../../include/tokenize_command.h"
+#include <stdio.h>
+
 #include <readline/history.h>
 #include <readline/readline.h>
 #include <stdlib.h>

@@ -1,5 +1,6 @@
 #include "../include/add_builtins.h"
 #include "../include/hashmap.h"
+#include "../include/init_auto_completion.h"
 #include "../include/run_program.h"
 #include "../include/shell_builtin.h"
 #include "../include/tokenize_command.h"
@@ -8,9 +9,12 @@
 #include <stdlib.h>
 #include <unistd.h>
 
+#include <readline/readline.h>
+
 int main() {
   setbuf(stdout, NULL);
 
+  init_auto_completion();
   add_builtins();
 
   while (1) {

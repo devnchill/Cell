@@ -5,7 +5,7 @@ SOURCES := $(shell find src -name '*.c')
 
 build/target: $(SOURCES)
 	mkdir -p build
-	gcc  $(CFLAGS) $^ $(LIBFLAGS) -o $@
+	gcc -fsanitize=address $(CFLAGS) $^ $(LIBFLAGS) -o $@
 
 run:build/target
 	./build/target

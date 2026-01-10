@@ -22,7 +22,7 @@ bool trie_insert(trienode **root, char *word) {
   trienode *temp = *root;
   int len = strlen(word);
   for (size_t i = 0; i < len; i++) {
-    int idx = (unsigned char)word[i] - 'a';
+    int idx = (unsigned char)word[i];
     if (!temp->children[idx]) {
       temp->children[idx] = create_node();
     }
@@ -76,7 +76,7 @@ void trie_collect(trienode *node, char *prefix, size_t prefix_len,
 
   for (int i = 0; i < NUM_CHAR; i++) {
     if (node->children[i]) {
-      prefix[prefix_len] = (char)(i + 'a');
+      prefix[prefix_len] = (char)(i);
       prefix[prefix_len + 1] = '\0';
       trie_collect(node->children[i], prefix, prefix_len + 1, matches, count,
                    capacity);
@@ -96,7 +96,7 @@ char **trie_get_matches(char *word) {
   size_t len = strlen(word);
 
   for (size_t i = 0; i < len; i++) {
-    int idx = (unsigned char)word[i] - 'a';
+    int idx = (unsigned char)word[i];
     if (!temp->children[idx]) {
       char **empty = malloc(sizeof(char *));
       empty[0] = NULL;

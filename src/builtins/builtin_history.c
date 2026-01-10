@@ -11,6 +11,26 @@ int builtin_history(int argc, char **argv) {
     return 0;
   int len = hs->length, n = len;
 
+  if (argc == 3 && 0 == strcmp(argv[1], "-r")) {
+    FILE *f = fopen(argv[2], "r");
+    if (!f) {
+      fprintf(stderr, "error opening file when trying to read history");
+      return -1;
+    }
+    char buf[4096];
+    while (fgets(buf, sizeof(buf), f)) {
+      size_t len = strlen(buf);
+      if (len && buf[len - 1] == '\n') {
+        buf[len - 1] = '\0';
+      }
+      if (*buf) {
+        add_history(buf);
+      }
+    }
+    fclose(f);
+    return 0;
+  }
+
   if (argc == 2) {
     n = atoi(argv[1]);
     if (n <= 0) {

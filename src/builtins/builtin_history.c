@@ -4,12 +4,7 @@
 #include <stdlib.h>
 
 #include <readline/history.h>
-
 int builtin_history(int argc, char **argv) {
-  HISTORY_STATE *hs = history_get_history_state();
-  if (!hs || !hs->entries)
-    return 0;
-  int len = hs->length, n = len;
 
   if (argc == 3) {
     char *file_path = argv[2];
@@ -23,9 +18,16 @@ int builtin_history(int argc, char **argv) {
     }
 
     if (0 == strcmp(argv[1], "-a")) {
-      return append_history(len, file_path);
+      return append_history(history_length - history_lines_written_to_file,
+                            file_path);
     }
   }
+
+  HISTORY_STATE *hs = history_get_history_state();
+  int len = hs->length, n = len;
+
+  if (!hs || !hs->entries)
+    return 0;
 
   if (argc == 2) {
     n = atoi(argv[1]);
@@ -39,6 +41,7 @@ int builtin_history(int argc, char **argv) {
     }
   }
 
+  read_history(getenv("HISTFILE"));
   for (int i = len - n; i < len; i++) {
     printf("    %d  %s\n", i + 1, hs->entries[i]->line);
   }

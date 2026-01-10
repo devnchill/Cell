@@ -1,6 +1,7 @@
 #include "../include/add_builtins.h"
 #include "../include/hashmap.h"
 #include "../include/init_auto_completion.h"
+#include "../include/load_history.h"
 #include "../include/run_program.h"
 #include "../include/shell_builtin.h"
 #include "../include/tokenize_command.h"
@@ -16,6 +17,7 @@ int main() {
 
   init_auto_completion();
   add_builtins();
+  load_history();
 
   while (1) {
 

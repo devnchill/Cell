@@ -13,12 +13,17 @@ int builtin_history(int argc, char **argv) {
 
   if (argc == 3) {
     char *file_path = argv[2];
+
     if (0 == strcmp(argv[1], "-r")) {
       return read_history(file_path);
     }
 
-    if (argc == 3 && strcmp(argv[1], "-w") == 0) {
+    if (0 == strcmp(argv[1], "-w")) {
       return write_history(file_path);
+    }
+
+    if (0 == strcmp(argv[1], "-a")) {
+      return append_history(len, file_path);
     }
   }
 

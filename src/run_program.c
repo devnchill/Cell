@@ -1,8 +1,10 @@
+#include "../include/tokenize_command.h"
+#include <fcntl.h>
 #include <stdio.h>
 #include <sys/wait.h>
 #include <unistd.h>
 
-int run_program(int argc, char **argv) {
+int run_program(tc *cmd) {
   pid_t pid = fork();
   switch (pid) {
   case -1: {
@@ -10,8 +12,17 @@ int run_program(int argc, char **argv) {
     return -1;
   };
   case 0: {
-    execvp(argv[0], argv);
-    printf("%s: command not found\n", argv[0]);
+    if (cmd->stdout_file) {
+      int fd = open(cmd->stdout_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+      if (fd < 0) {
+        perror("open");
+        _exit(1);
+      }
+      dup2(fd, STDOUT_FILENO);
+      close(fd);
+    }
+    execvp(cmd->argv[0], cmd->argv);
+    perror(cmd->argv[0]);
     _exit(127);
   };
   default: {

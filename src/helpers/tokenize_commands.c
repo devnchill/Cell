@@ -17,7 +17,16 @@ tc tokenize_command() {
 
   char *token = strtok(command, " ");
   while (token && t.argc < 127) {
-    t.argv[t.argc++] = token;
+    if (0 == strcmp(">", token) || 0 == strcmp("1>", token)) {
+      token = strtok(NULL, " ");
+      if (!token) {
+        fprintf(stderr, "syntax error: exptected file\n");
+        break;
+      }
+      t.stdout_file = token;
+    } else {
+      t.argv[t.argc++] = token;
+    }
     token = strtok(NULL, " ");
   }
   t.argv[t.argc] = NULL;

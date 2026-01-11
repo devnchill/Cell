@@ -22,7 +22,7 @@ int run_program(tc *cmd) {
       close(fd);
     }
     execvp(cmd->argv[0], cmd->argv);
-    perror(cmd->argv[0]);
+    fprintf(stderr, "%s: command not found\n", cmd->argv[0]);
     _exit(127);
   };
   default: {

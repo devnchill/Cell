@@ -12,6 +12,7 @@ tc tokenize_command() {
   char *line = readline("$ ");
   if (!line)
     return t;
+
   add_history(line);
 
   t.argv = malloc(128 * sizeof(char *));
@@ -20,23 +21,76 @@ tc tokenize_command() {
 
   char buf[1024];
   int bi = 0;
-  bool in_quote = 0;
+
+  bool single_quote = false;
+  bool double_quote = false;
 
   for (int i = 0;; i++) {
     char c = line[i];
-    if (c == '"') {
-      in_quote = !in_quote;
-      continue;
-    }
-    if ((c == ' ' || c == '\0') && !in_quote) {
+    if (!single_quote && !double_quote && c == '1' && line[i + 1] == '>') {
+
       if (bi > 0) {
         buf[bi] = '\0';
         t.argv[t.argc++] = strdup(buf);
         bi = 0;
       }
-      if (c == '\0') {
-        break;
+
+      i += 2;
+
+      while (line[i] == ' ')
+        i++;
+
+      char filebuf[1024];
+      int fi = 0;
+      while (line[i] && line[i] != ' ') {
+        filebuf[fi++] = line[i++];
       }
+      filebuf[fi] = '\0';
+
+      t.stdout_file = strdup(filebuf);
+      i--;
+      continue;
+    }
+    if (!single_quote && !double_quote && c == '>') {
+
+      if (bi > 0) {
+        buf[bi] = '\0';
+        t.argv[t.argc++] = strdup(buf);
+        bi = 0;
+      }
+
+      i++;
+      while (line[i] == ' ')
+        i++;
+
+      char filebuf[1024];
+      int fi = 0;
+      while (line[i] && line[i] != ' ') {
+        filebuf[fi++] = line[i++];
+      }
+      filebuf[fi] = '\0';
+
+      t.stdout_file = strdup(filebuf);
+      i--;
+      continue;
+    }
+    if (c == '\'' && !double_quote) {
+      single_quote = !single_quote;
+      continue;
+    }
+
+    if (c == '"' && !single_quote) {
+      double_quote = !double_quote;
+      continue;
+    }
+    if ((c == ' ' || c == '\0') && !single_quote && !double_quote) {
+      if (bi > 0) {
+        buf[bi] = '\0';
+        t.argv[t.argc++] = strdup(buf);
+        bi = 0;
+      }
+      if (c == '\0')
+        break;
       continue;
     }
     buf[bi++] = c;

@@ -27,8 +27,29 @@ tc tokenize_command() {
 
   for (int i = 0;; i++) {
     char c = line[i];
-    if (!single_quote && !double_quote && c == '1' && line[i + 1] == '>') {
 
+    if (c == '\\') {
+      if (single_quote) {
+        buf[bi++] = '\\';
+      } else if (double_quote) {
+        char next = line[i + 1];
+        if (next == '$' || next == '"' || next == '\\' || next == '\n') {
+          i++;
+          buf[bi++] = next;
+        } else {
+          buf[bi++] = '\\';
+        }
+      } else {
+        if (line[i + 1] == '\0') {
+        } else {
+          i++;
+          buf[bi++] = line[i];
+        }
+      }
+      continue;
+    }
+
+    if (!single_quote && !double_quote && c == '1' && line[i + 1] == '>') {
       if (bi > 0) {
         buf[bi] = '\0';
         t.argv[t.argc++] = strdup(buf);
@@ -52,7 +73,6 @@ tc tokenize_command() {
       continue;
     }
     if (!single_quote && !double_quote && c == '>') {
-
       if (bi > 0) {
         buf[bi] = '\0';
         t.argv[t.argc++] = strdup(buf);

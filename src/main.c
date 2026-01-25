@@ -4,6 +4,7 @@
 #include "../include/init_auto_completion.h"
 #include "../include/load_history.h"
 #include "../include/parser/parser.h"
+#include "../include/redirect/restore_fd.h"
 #include "../include/redirect/stderr.h"
 #include "../include/redirect/stdout.h"
 #include "../include/run_program.h"
@@ -45,7 +46,7 @@ int main() {
     shell_builtin *builtin = hashmap_get(command.argv[0]);
     int saved_stdout = -1, saved_stderr = -1;
     if (command.redirs.stderr_file) {
-      // save the fd of standard output
+      // save the fd of standard error stream
       redirect_stderr(&command, &saved_stderr);
     }
     if (command.redirs.stdout_file) {
@@ -55,34 +56,14 @@ int main() {
     if (builtin) {
       builtin->func(command.argc, command.argv);
 
-      if (saved_stdout != -1) {
-        // point fd of stdout back to itself
-        dup2(saved_stdout, STDOUT_FILENO);
-        close(saved_stdout);
-      }
-      if (saved_stderr != -1) {
-        // point fd of stdout back to itself
-        dup2(saved_stderr, STDOUT_FILENO);
-        close(saved_stderr);
-      }
-      free(command.argv);
+      free_command(&command);
       continue;
     }
 
     if (run_program(&command) == -1) {
-      if (saved_stdout != -1) {
-        // point fd of stdout back to itself
-        dup2(saved_stdout, STDOUT_FILENO);
-        close(saved_stdout);
-      }
-      if (saved_stderr != -1) {
-        // point fd of stdout back to itself
-        dup2(saved_stderr, STDOUT_FILENO);
-        close(saved_stderr);
-      }
-
       printf("%s: command not found\n", command.argv[0]);
     }
+    restore_fd(saved_stdout, saved_stderr);
     free_command(&command);
   }
 

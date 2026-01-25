@@ -34,13 +34,10 @@ int main() {
 
     free(line);
 
-    if (!command.argv) {
+    if (!command.argv || !command.argv[0]) {
       printf("\n");
-      break;
-    }
-
-    if (!command.argv[0])
       continue;
+    }
 
     shell_builtin *builtin = hashmap_get(command.argv[0]);
     if (builtin) {

@@ -18,5 +18,4 @@ void parse_stdout(pc *cmd, ps *state, int inc) {
   filebuf[fi] = '\0';
 
   cmd->redirs.stdout_file = strdup(filebuf);
-  state->pos--;
 }

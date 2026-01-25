@@ -55,23 +55,26 @@ pc parse_command(const char *line) {
     }
 
     // redirect stdout
-    if ((!state.in_single_quotes && !state.in_double_quotes && c == '1' &&
-         state.line[state.pos + 1] == '>') ||
-        (!state.in_single_quotes && !state.in_double_quotes && c == '>')) {
-
+    if (c == '1' && state.line[state.pos + 1] == '>') {
       parse_stdout(&cmd, &state, 2);
+      continue;
+    } else if (c == '>') {
+      parse_stdout(&cmd, &state, 1);
       continue;
     }
 
     if (c == '"' && !state.in_single_quotes) {
       state.in_double_quotes = !state.in_double_quotes;
+      state.pos++;
       continue;
     }
+
     if ((c == ' ' || c == '\0') && !state.in_single_quotes &&
         !state.in_double_quotes) {
       flush_buffer_to_argv(&state, &cmd);
       if (c == '\0')
         break;
+      state.pos++;
       continue;
     }
     state.buffer[state.buffer_index++] = c;

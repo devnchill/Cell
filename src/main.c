@@ -43,16 +43,16 @@ int main() {
     }
 
     shell_builtin *builtin = hashmap_get(command.argv[0]);
+    int saved_stdout = -1, saved_stderr = -1;
+    if (command.redirs.stderr_file) {
+      // save the fd of standard output
+      redirect_stderr(&command, &saved_stderr);
+    }
+    if (command.redirs.stdout_file) {
+      // save the fd of standard output
+      redirect_stdout(&command, &saved_stdout);
+    }
     if (builtin) {
-      int saved_stdout = -1, saved_stderr = -1;
-      if (command.redirs.stderr_file) {
-        // save the fd of standard output
-        redirect_stderr(&command, &saved_stderr);
-      }
-      if (command.redirs.stdout_file) {
-        // save the fd of standard output
-        redirect_stdout(&command, &saved_stdout);
-      }
       builtin->func(command.argc, command.argv);
 
       if (saved_stdout != -1) {
@@ -70,6 +70,17 @@ int main() {
     }
 
     if (run_program(&command) == -1) {
+      if (saved_stdout != -1) {
+        // point fd of stdout back to itself
+        dup2(saved_stdout, STDOUT_FILENO);
+        close(saved_stdout);
+      }
+      if (saved_stderr != -1) {
+        // point fd of stdout back to itself
+        dup2(saved_stderr, STDOUT_FILENO);
+        close(saved_stderr);
+      }
+
       printf("%s: command not found\n", command.argv[0]);
     }
     free_command(&command);

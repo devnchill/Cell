@@ -1,4 +1,5 @@
 #include "../include/parser/parser.h"
+#include "../include/redirect/stdout.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys/wait.h>
@@ -12,16 +13,6 @@ int run_program(pc *cmd) {
     return -1;
   };
   case 0: {
-    if (cmd->redirs.stdout_file) {
-      int fd =
-          open(cmd->redirs.stdout_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
-      if (fd < 0) {
-        perror("open");
-        _exit(1);
-      }
-      dup2(fd, STDOUT_FILENO);
-      close(fd);
-    }
     execvp(cmd->argv[0], cmd->argv);
     fprintf(stderr, "%s: command not found\n", cmd->argv[0]);
     _exit(127);

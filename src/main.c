@@ -49,7 +49,6 @@ int main() {
       int saved_stdout = -1, saved_stderr = -1;
       if (command.redirs.stderr_file) {
         // save the fd of standard error stream
-        fprintf(stderr, "stderr redir to: %s\n", command.redirs.stderr_file);
         redirect_stderr(&command, &saved_stderr);
       }
 

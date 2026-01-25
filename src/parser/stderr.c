@@ -8,7 +8,7 @@ void parse_stderr(pc *cmd, ps *state) {
   state->pos++;
 
   while (state->line[state->pos] == ' ')
-    state->pos++;
+    state->pos += 2;
 
   char filebuf[1024];
   int fi = 0;

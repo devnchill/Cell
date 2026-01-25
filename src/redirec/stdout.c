@@ -9,7 +9,6 @@ void redirect_stdout(pc *command, int *saved_fd) {
       open(command->redirs.stdout_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
   if (fd < 0) {
     perror("open");
-    free(command->argv);
     return;
   }
 

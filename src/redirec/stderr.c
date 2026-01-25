@@ -9,7 +9,6 @@ void redirect_stderr(pc *command, int *saved_fd) {
       open(command->redirs.stderr_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
   if (fd < 0) {
     perror("open");
-    free(command->argv);
     return;
   }
 

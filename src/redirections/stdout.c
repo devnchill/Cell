@@ -1,4 +1,4 @@
-#include "../../include/parse_command.h"
+#include "../../include/helpers/parse_command.h"
 #include <string.h>
 
 void parse_stdout(pc *cmd, ps *state, int inc) {

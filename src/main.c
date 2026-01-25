@@ -1,10 +1,10 @@
-#include "../include/add_builtins.h"
-#include "../include/hashmap.h"
+#include "../include/builtins/add_builtins.h"
+#include "../include/builtins/shell_builtin.h"
+#include "../include/helpers/hashmap.h"
+#include "../include/helpers/parse_command.h"
 #include "../include/init_auto_completion.h"
 #include "../include/load_history.h"
-#include "../include/parse_command.h"
 #include "../include/run_program.h"
-#include "../include/shell_builtin.h"
 #include <dirent.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -74,7 +74,7 @@ int main() {
     if (run_program(&command) == -1) {
       printf("%s: command not found\n", command.argv[0]);
     }
-    free(command.argv);
+    free_command(&command);
   }
 
   return 0;

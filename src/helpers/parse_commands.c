@@ -1,5 +1,5 @@
-#include "../../include/parse_command.h"
-#include "../../include/redirect_stdout.h"
+#include "../../include/helpers/parse_command.h"
+#include "../../include/redirections/redirect_stdout.h"
 #include <stdbool.h>
 #include <stdio.h>
 

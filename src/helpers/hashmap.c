@@ -1,5 +1,5 @@
-#include "../../include/hashmap.h"
-#include "../../include/shell_builtin.h"
+#include "../../include/helpers/hashmap.h"
+#include "../../include/builtins/shell_builtin.h"
 #include <stdbool.h>
 #include <string.h>
 

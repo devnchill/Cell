@@ -1,11 +1,11 @@
-#include "../../include/builtin_cd.h"
-#include "../../include/builtin_echo.h"
-#include "../../include/builtin_exit.h"
-#include "../../include/builtin_history.h"
-#include "../../include/builtin_pwd.h"
-#include "../../include/builtin_type.h"
-#include "../../include/hashmap.h"
-#include "../../include/shell_builtin.h"
+#include "../../include/builtins/builtin_cd.h"
+#include "../../include/builtins/builtin_echo.h"
+#include "../../include/builtins/builtin_exit.h"
+#include "../../include/builtins/builtin_history.h"
+#include "../../include/builtins/builtin_pwd.h"
+#include "../../include/builtins/builtin_type.h"
+#include "../../include/builtins/shell_builtin.h"
+#include "../../include/helpers/hashmap.h"
 
 void add_builtins(void) {
   static shell_builtin exit = {.command = "exit",

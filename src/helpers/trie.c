@@ -1,4 +1,4 @@
-#include "../../include/trie.h"
+#include "../../include/helpers/trie.h"
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>

@@ -35,6 +35,18 @@ static void handle_escape_sequence(ps *state) {
   }
 }
 
+void free_command(pc *cmd) {
+  if (!cmd)
+    return;
+  if (cmd->argv) {
+    for (int i = 0; i < cmd->argc; i++)
+      free(cmd->argv[i]);
+    free(cmd->argv);
+  }
+  if (cmd->redirs.stdout_file)
+    free(cmd->redirs.stdout_file);
+}
+
 pc parse_command(const char *line) {
   pc cmd = {0};
   ps state = {0};

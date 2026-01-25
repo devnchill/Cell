@@ -36,6 +36,7 @@ int main() {
 
     if (!command.argv || !command.argv[0]) {
       printf("\n");
+      free_command(&command);
       continue;
     }
 
@@ -51,13 +52,16 @@ int main() {
           free(command.argv);
           continue;
         }
+
         // we store the fd of stdout
         saved_stdout = dup(STDOUT_FILENO);
+
         // stdout is closed and instead now it points to file passed
         dup2(fd, STDOUT_FILENO);
         close(fd);
       }
       builtin->func(command.argc, command.argv);
+
       if (saved_stdout != -1) {
         // point fd of stdout back to itself
         dup2(saved_stdout, STDOUT_FILENO);

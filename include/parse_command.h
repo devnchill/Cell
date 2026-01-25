@@ -2,6 +2,7 @@
 #define PARSE_COMMAND
 #include <stdbool.h>
 #include <stddef.h>
+#include <stdlib.h>
 
 typedef struct redirections {
   char *stdout_file;
@@ -25,6 +26,8 @@ typedef struct parser_state {
   size_t pos;
   pc *cmd;
 } ps;
+
+void free_command(pc *cmd);
 
 void flush_buffer_to_argv(ps *state, pc *cmd);
 

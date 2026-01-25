@@ -1,8 +1,8 @@
 #ifndef RUN_PROGRAM
 #define RUN_PROGRAM
 
-#include "tokenize_command.h"
+#include "parse_command.h"
 
-int run_program(tc *cmd);
+int run_program(pc *cmd);
 
 #endif

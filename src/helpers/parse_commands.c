@@ -1,4 +1,5 @@
 #include "../../include/parse_command.h"
+#include "../../include/redirect_stdout.h"
 #include <stdbool.h>
 #include <stdio.h>
 
@@ -15,6 +16,25 @@ void flush_buffer_to_argv(ps *state, pc *cmd) {
   state->buffer_index = 0;
 }
 
+static void handle_escape_sequence(ps *state) {
+  if (state->in_single_quotes) {
+    state->buffer[state->buffer_index++] = '\\';
+  } else if (state->in_double_quotes) {
+    char next = state->line[state->pos + 1];
+    if (next == '$' || next == '"' || next == '\\' || next == '\n') {
+      state->pos++;
+      state->buffer[state->buffer_index++] = next;
+    } else {
+      state->buffer[state->buffer_index++] = '\\';
+    }
+  } else {
+    if (state->line[state->pos + 1] != '\0') {
+      state->pos++;
+      state->buffer[state->buffer_index++] = state->line[state->pos];
+    }
+  }
+}
+
 pc parse_command(const char *line) {
   pc cmd = {0};
   ps state = {0};
@@ -28,68 +48,18 @@ pc parse_command(const char *line) {
   while (1) {
     char c = state.line[state.pos];
 
+    // escape
     if (c == '\\') {
-      if (state.in_single_quotes) {
-        state.buffer[state.buffer_index++] = '\\';
-      } else if (state.in_double_quotes) {
-        char next = line[state.pos + 1];
-        if (next == '$' || next == '"' || next == '\\' || next == '\n') {
-          state.pos++;
-          state.buffer[state.buffer_index++] = next;
-        } else {
-          state.buffer[state.buffer_index++] = '\\';
-        }
-      } else {
-        if (line[state.pos + 1] != '\0') {
-          state.pos++;
-          state.buffer[state.buffer_index++] = line[state.pos];
-        }
-      }
+      handle_escape_sequence(&state);
       continue;
     }
 
-    if (!state.in_single_quotes && !state.in_double_quotes && c == '1' &&
-        line[state.pos + 1] == '>') {
+    // redirect stdout
+    if ((!state.in_single_quotes && !state.in_double_quotes && c == '1' &&
+         state.line[state.pos + 1] == '>') ||
+        (!state.in_single_quotes && !state.in_double_quotes && c == '>')) {
 
-      flush_buffer_to_argv(&state, &cmd);
-
-      state.pos += 2;
-
-      while (line[state.pos] == ' ')
-        state.pos++;
-
-      char filebuf[1024];
-      int fi = 0;
-      while (line[state.pos] && line[state.pos] != ' ' &&
-             fi < (int)sizeof(filebuf) - 1) {
-        filebuf[fi++] = line[state.pos++];
-      }
-      filebuf[fi] = '\0';
-
-      cmd.redirs.stdout_file = strdup(filebuf);
-      state.pos--;
-      continue;
-    }
-    if (!state.in_single_quotes && !state.in_double_quotes && c == '>') {
-      flush_buffer_to_argv(&state, &cmd);
-
-      state.pos++;
-      while (line[state.pos] == ' ')
-        state.pos++;
-
-      char filebuf[1024];
-      int fi = 0;
-      while (line[state.pos] && line[state.pos] != ' ') {
-        filebuf[fi++] = line[state.pos++];
-      }
-      filebuf[fi] = '\0';
-
-      cmd.redirs.stdout_file = strdup(filebuf);
-      state.pos--;
-      continue;
-    }
-    if (c == '\'' && !state.in_double_quotes) {
-      state.in_single_quotes = !state.in_single_quotes;
+      parse_stdout(&cmd, &state, 2);
       continue;
     }
 

@@ -26,6 +26,8 @@ typedef struct parser_state {
   pc *cmd;
 } ps;
 
+void flush_buffer_to_argv(ps *state, pc *cmd);
+
 pc parse_command(const char *line);
 
 #endif

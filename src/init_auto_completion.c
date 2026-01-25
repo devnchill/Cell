@@ -1,6 +1,6 @@
 #include <stdio.h>
 
-#include "../include/trie.h"
+#include "../include/helpers/trie.h"
 #include <dirent.h>
 #include <readline/readline.h>
 #include <stdio.h>

@@ -1,6 +1,6 @@
-#include "../../include/hashmap.h"
-#include "../../include/is_present_in_path.h"
-#include "../../include/shell_builtin.h"
+#include "../../include/builtins/shell_builtin.h"
+#include "../../include/helpers/hashmap.h"
+#include "../../include/helpers/is_present_in_path.h"
 #include <stdio.h>
 #include <unistd.h>
 

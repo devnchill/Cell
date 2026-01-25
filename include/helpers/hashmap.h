@@ -1,7 +1,7 @@
 #ifndef HASHMAP
 #define HASHMAP
 
-#include "shell_builtin.h"
+#include "../builtins/shell_builtin.h"
 #include <stdbool.h>
 
 typedef struct {

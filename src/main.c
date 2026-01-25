@@ -1,9 +1,9 @@
 #include "../include/builtins/add_builtins.h"
 #include "../include/builtins/shell_builtin.h"
 #include "../include/helpers/hashmap.h"
-#include "../include/helpers/parse_command.h"
 #include "../include/init_auto_completion.h"
 #include "../include/load_history.h"
+#include "../include/parser/parser.h"
 #include "../include/run_program.h"
 #include <dirent.h>
 #include <fcntl.h>

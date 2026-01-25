@@ -1,7 +1,7 @@
 #ifndef RUN_PROGRAM
 #define RUN_PROGRAM
 
-#include "./helpers/parse_command.h"
+#include "./parser/parser.h"
 
 int run_program(pc *cmd);
 

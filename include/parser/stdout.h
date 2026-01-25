@@ -1,7 +1,7 @@
 #ifndef PARSE_STDOUT
 #define PARSE_STDOUT
 
-#include "../helpers/parse_command.h"
+#include "../parser/parser.h"
 void parse_stdout(pc *cmd, ps *state, int inc);
 
 #endif

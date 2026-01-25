@@ -1,4 +1,4 @@
-#include "../include/helpers/parse_command.h"
+#include "../include/parser/parser.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <sys/wait.h>

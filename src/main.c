@@ -4,6 +4,8 @@
 #include "../include/init_auto_completion.h"
 #include "../include/load_history.h"
 #include "../include/parser/parser.h"
+#include "../include/redirect/stderr.h"
+#include "../include/redirect/stdout.h"
 #include "../include/run_program.h"
 #include <dirent.h>
 #include <fcntl.h>
@@ -42,23 +44,14 @@ int main() {
 
     shell_builtin *builtin = hashmap_get(command.argv[0]);
     if (builtin) {
-      // save the fd of standard output
-      int saved_stdout = -1;
+      int saved_stdout = -1, saved_stderr = -1;
+      if (command.redirs.stderr_file) {
+        // save the fd of standard output
+        redirect_stderr(&command, &saved_stderr);
+      }
       if (command.redirs.stdout_file) {
-        int fd = open(command.redirs.stdout_file, O_WRONLY | O_CREAT | O_TRUNC,
-                      0644);
-        if (fd < 0) {
-          perror("open");
-          free(command.argv);
-          continue;
-        }
-
-        // we store the fd of stdout
-        saved_stdout = dup(STDOUT_FILENO);
-
-        // stdout is closed and instead now it points to file passed
-        dup2(fd, STDOUT_FILENO);
-        close(fd);
+        // save the fd of standard output
+        redirect_stdout(&command, &saved_stdout);
       }
       builtin->func(command.argc, command.argv);
 
@@ -66,6 +59,11 @@ int main() {
         // point fd of stdout back to itself
         dup2(saved_stdout, STDOUT_FILENO);
         close(saved_stdout);
+      }
+      if (saved_stderr != -1) {
+        // point fd of stdout back to itself
+        dup2(saved_stderr, STDOUT_FILENO);
+        close(saved_stderr);
       }
       free(command.argv);
       continue;

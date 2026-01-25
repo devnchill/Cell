@@ -1,11 +1,11 @@
-#include "../../include/parser/stdout.h"
+#include "../../include/parser/stderr.h"
 #include "../../include/parser/parser.h"
 #include <string.h>
 
-void parse_stdout(pc *cmd, ps *state, int inc) {
+void parse_stderr(pc *cmd, ps *state) {
   flush_buffer_to_argv(state, cmd);
 
-  state->pos += inc;
+  state->pos++;
 
   while (state->line[state->pos] == ' ')
     state->pos++;
@@ -18,5 +18,5 @@ void parse_stdout(pc *cmd, ps *state, int inc) {
   }
   filebuf[fi] = '\0';
 
-  cmd->redirs.stdout_file = strdup(filebuf);
+  cmd->redirs.stderr_file = strdup(filebuf);
 }

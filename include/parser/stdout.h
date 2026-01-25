@@ -1,7 +1,9 @@
 #ifndef PARSE_STDOUT
 #define PARSE_STDOUT
 
-#include "../parser/parser.h"
+typedef struct parsed_command pc;
+typedef struct parser_state ps;
+
 void parse_stdout(pc *cmd, ps *state, int inc);
 
 #endif

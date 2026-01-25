@@ -1,4 +1,5 @@
 #include "../../include/parser/parser.h"
+#include "../../include/parser/stderr.h"
 #include "../../include/parser/stdout.h"
 #include <stdbool.h>
 #include <stdio.h>
@@ -66,7 +67,11 @@ pc parse_command(const char *line) {
       continue;
     }
 
-    // redirect stdout
+    if (c == '2' && state.line[state.pos + 1] == '>') {
+      parse_stderr(&cmd, &state);
+      continue;
+    }
+
     if (c == '1' && state.line[state.pos + 1] == '>') {
       parse_stdout(&cmd, &state, 2);
       continue;

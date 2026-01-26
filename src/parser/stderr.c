@@ -2,10 +2,10 @@
 #include "../../include/parser/parser.h"
 #include <string.h>
 
-void parse_stderr(pc *cmd, ps *state) {
+void parse_stderr(pc *cmd, ps *state, int inc) {
   flush_buffer_to_argv(state, cmd);
 
-  state->pos += 2;
+  state->pos += inc;
 
   while (state->line[state->pos] == ' ')
     state->pos++;

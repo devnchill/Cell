@@ -4,8 +4,12 @@
 #include <unistd.h>
 
 void redirect_stderr(pc *command) {
-  int fd =
-      open(command->redirs.stderr_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+  int fd = -1;
+  if (command->redirs.stderr_append)
+    fd =
+        open(command->redirs.stderr_file, O_WRONLY | O_CREAT | O_APPEND | 0644);
+  else
+    fd = open(command->redirs.stderr_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
   if (fd < 0) {
     perror("open stderr");
     return;

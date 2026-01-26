@@ -4,8 +4,12 @@
 #include <unistd.h>
 
 void redirect_stdout(pc *command) {
-  int fd =
-      open(command->redirs.stdout_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
+  int fd = -1;
+
+  if (command->redirs.stdout_append)
+    fd = open(command->redirs.stdout_file, O_WRONLY | O_CREAT | O_APPEND, 0644);
+  else
+    fd = open(command->redirs.stdout_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
   if (fd < 0) {
     perror("open stdout");
     return;

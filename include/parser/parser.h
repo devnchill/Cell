@@ -24,7 +24,6 @@ typedef struct parser_state {
   char buffer[1024];
   int buffer_index;
   size_t pos;
-  pc *cmd;
 } ps;
 
 void free_command(pc *cmd);

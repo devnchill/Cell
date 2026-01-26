@@ -78,8 +78,27 @@ pc parse_command(const char *line) {
     }
 
     if (!state.in_single_quotes && !state.in_double_quotes && c == '2' &&
+        state.line[state.pos + 1] == '>' && state.line[state.pos + 2] == '>') {
+      cmd.redirs.stderr_append = true;
+      parse_stderr(&cmd, &state, 3);
+      continue;
+    }
+
+    if (!state.in_single_quotes && !state.in_double_quotes && c == '1' &&
+        state.line[state.pos + 1] == '>' && state.line[state.pos + 2] == '>') {
+      cmd.redirs.stdout_append = true;
+      parse_stdout(&cmd, &state, 3);
+      continue;
+    } else if (!state.in_single_quotes && !state.in_double_quotes && c == '>' &&
+               state.line[state.pos + 1] == '>') {
+      cmd.redirs.stdout_append = true;
+      parse_stdout(&cmd, &state, 2);
+      continue;
+    }
+
+    if (!state.in_single_quotes && !state.in_double_quotes && c == '2' &&
         state.line[state.pos + 1] == '>') {
-      parse_stderr(&cmd, &state);
+      parse_stderr(&cmd, &state, 2);
       continue;
     }
 

@@ -4,6 +4,6 @@
 typedef struct parsed_command pc;
 typedef struct parser_state ps;
 
-void parse_stderr(pc *cmd, ps *state);
+void parse_stderr(pc *cmd, ps *state, int inc);
 
 #endif

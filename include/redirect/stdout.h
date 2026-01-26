@@ -3,6 +3,6 @@
 
 typedef struct parsed_command pc;
 
-void redirect_stdout(pc *command, int *saved_fd);
+void redirect_stdout(pc *command);
 
 #endif

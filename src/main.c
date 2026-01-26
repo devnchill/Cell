@@ -49,12 +49,12 @@ int main() {
       int saved_stdout = -1, saved_stderr = -1;
       if (command.redirs.stderr_file) {
         // save the fd of standard error stream
-        redirect_stderr(&command, &saved_stderr);
+        redirect_stderr(&command);
       }
 
       if (command.redirs.stdout_file) {
         // save the fd of standard output
-        redirect_stdout(&command, &saved_stdout);
+        redirect_stdout(&command);
       }
 
       builtin->func(command.argc, command.argv);

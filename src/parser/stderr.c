@@ -5,10 +5,10 @@
 void parse_stderr(pc *cmd, ps *state) {
   flush_buffer_to_argv(state, cmd);
 
-  state->pos++;
+  state->pos += 2;
 
   while (state->line[state->pos] == ' ')
-    state->pos += 2;
+    state->pos++;
 
   char filebuf[1024];
   int fi = 0;

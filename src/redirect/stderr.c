@@ -1,21 +1,20 @@
 #include "../../include/parser/parser.h"
 #include <fcntl.h>
 #include <stdio.h>
-#include <stdlib.h>
 #include <unistd.h>
 
-void redirect_stderr(pc *command, int *saved_fd) {
+void redirect_stderr(pc *command) {
   int fd =
       open(command->redirs.stderr_file, O_WRONLY | O_CREAT | O_TRUNC, 0644);
   if (fd < 0) {
-    perror("open");
+    perror("open stderr");
     return;
   }
 
-  // we store the fd of stdout
-  *saved_fd = dup(STDERR_FILENO);
-
   // stdout is closed and instead now it points to file passed
-  dup2(fd, STDERR_FILENO);
+  if (dup2(fd, STDERR_FILENO) < 0) {
+    perror("dup2 stderr");
+    _exit(1);
+  };
   close(fd);
 }

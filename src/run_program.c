@@ -22,7 +22,6 @@ int run_program(pc *cmd) {
       redirect_stdout(cmd);
 
     execvp(cmd->argv[0], cmd->argv);
-    perror(cmd->argv[0]);
     _exit(127);
   };
   default: {

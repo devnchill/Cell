@@ -48,12 +48,12 @@ int main() {
     if (builtin) {
       int saved_stdout = -1, saved_stderr = -1;
       if (command.redirs.stderr_file) {
-        // save the fd of standard error stream
+        saved_stderr = dup(STDERR_FILENO);
         redirect_stderr(&command);
       }
 
       if (command.redirs.stdout_file) {
-        // save the fd of standard output
+        saved_stdout = dup(STDOUT_FILENO);
         redirect_stdout(&command);
       }
 
@@ -64,7 +64,8 @@ int main() {
       continue;
     }
 
-    if (run_program(&command) == -1) {
+    int status = run_program(&command);
+    if (status == 127) {
       printf("%s: command not found\n", command.argv[0]);
     }
     free_command(&command);

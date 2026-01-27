@@ -8,7 +8,8 @@
 #include "../include/redirect/restore_fd.h"
 #include "../include/redirect/stderr.h"
 #include "../include/redirect/stdout.h"
-#include "../include/run_program.h"
+#include "../include/run/pipeline.h"
+#include "../include/run/program.h"
 #include <dirent.h>
 #include <fcntl.h>
 #include <stdio.h>
@@ -72,10 +73,7 @@ int main() {
         printf("%s: command not found\n", command->argv[0]);
       }
     } else {
-      for (int i = 0; i < pl.count; i++) {
-        pc cmd = pl.commands[i];
-        run_program(&cmd);
-      }
+      run_pipeline(&pl);
     }
     free_pipeline(&pl);
   }

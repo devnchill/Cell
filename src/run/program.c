@@ -1,6 +1,6 @@
-#include "../include/parser/parser.h"
-#include "../include/redirect/stderr.h"
-#include "../include/redirect/stdout.h"
+#include "../../include/parser/parser.h"
+#include "../../include/redirect/stderr.h"
+#include "../../include/redirect/stdout.h"
 #include <fcntl.h>
 #include <stdio.h>
 #include <stdlib.h>

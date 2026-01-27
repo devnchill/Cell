@@ -1,4 +1,6 @@
 #include "../../include/parser/parser.h"
+#include "../../include/helpers/flush_buffer_to_argv.h"
+#include "../../include/parser/handle_escape.h"
 #include "../../include/parser/stderr.h"
 #include "../../include/parser/stdout.h"
 #include <stdbool.h>
@@ -9,67 +11,42 @@
 #include <stdlib.h>
 #include <string.h>
 
-void flush_buffer_to_argv(ps *state, pc *cmd) {
-  if (state->buffer_index == 0)
-    return;
-  state->buffer[state->buffer_index] = '\0';
-  cmd->argv[cmd->argc++] = strdup(state->buffer);
-  state->buffer_index = 0;
+void append(pipeline_t *pl, pc *cmd) {
+  pl->commands = realloc(pl->commands, sizeof(pc) * (pl->count + 1));
+
+  if (!pl->commands) {
+    perror("realloc");
+    exit(1);
+  }
+
+  pl->commands[pl->count] = *cmd;
+  pl->count++;
 }
 
-static void handle_escape_sequence(ps *state) {
-  char next = state->line[state->pos + 1];
-
-  // just add it as it is
-  if (state->in_single_quotes) {
-    state->buffer[state->buffer_index++] = '\\';
-    state->pos++;
-    return;
-  }
-
-  if (state->in_double_quotes) {
-    if (next == '$' || next == '"' || next == '\\' || next == '\n') {
-      state->buffer[state->buffer_index++] = next;
-      state->pos += 2;
-    } else {
-      state->buffer[state->buffer_index++] = '\\';
-      state->pos++;
-    }
-    return;
-  }
-
-  if (next != '\0') {
-    state->buffer[state->buffer_index++] = next;
-    state->pos += 2;
-  } else {
-    state->pos++;
-  }
-}
-
-void free_command(pc *cmd) {
-  if (!cmd)
-    return;
-  if (cmd->argv) {
-    for (int i = 0; i < cmd->argc; i++)
-      free(cmd->argv[i]);
-    free(cmd->argv);
-  }
-  if (cmd->redirs.stdout_file)
-    free(cmd->redirs.stdout_file);
-}
-
-pc parse_command(const char *line) {
-  pc cmd = {0};
+pipeline_t parse_command(const char *line) {
+  pipeline_t pl = {0};
+  pc curr_cmd = {0};
   ps state = {0};
 
   state.line = line;
 
-  cmd.argv = malloc(128 * sizeof(char *));
-  if (!cmd.argv)
-    return cmd;
+  curr_cmd.argv = malloc(128 * sizeof(char *));
+  if (!curr_cmd.argv)
+    return pl;
 
   while (1) {
     char c = state.line[state.pos];
+
+    if (c == '|') {
+      flush_buffer_to_argv(&state, &curr_cmd);
+      curr_cmd.argv[curr_cmd.argc] = NULL;
+      append(&pl, &curr_cmd);
+      memset(&curr_cmd, 0, sizeof(pc));
+      curr_cmd.argv = malloc(128 * sizeof(char *));
+      state.pos++;
+      state.buffer_index = 0;
+      continue;
+    }
 
     // escape
     if (c == '\\') {
@@ -79,35 +56,35 @@ pc parse_command(const char *line) {
 
     if (!state.in_single_quotes && !state.in_double_quotes && c == '2' &&
         state.line[state.pos + 1] == '>' && state.line[state.pos + 2] == '>') {
-      cmd.redirs.stderr_append = true;
-      parse_stderr(&cmd, &state, 3);
+      curr_cmd.redirs.stderr_append = true;
+      parse_stderr(&curr_cmd, &state, 3);
       continue;
     }
 
     if (!state.in_single_quotes && !state.in_double_quotes && c == '1' &&
         state.line[state.pos + 1] == '>' && state.line[state.pos + 2] == '>') {
-      cmd.redirs.stdout_append = true;
-      parse_stdout(&cmd, &state, 3);
+      curr_cmd.redirs.stdout_append = true;
+      parse_stdout(&curr_cmd, &state, 3);
       continue;
     } else if (!state.in_single_quotes && !state.in_double_quotes && c == '>' &&
                state.line[state.pos + 1] == '>') {
-      cmd.redirs.stdout_append = true;
-      parse_stdout(&cmd, &state, 2);
+      curr_cmd.redirs.stdout_append = true;
+      parse_stdout(&curr_cmd, &state, 2);
       continue;
     }
 
     if (!state.in_single_quotes && !state.in_double_quotes && c == '2' &&
         state.line[state.pos + 1] == '>') {
-      parse_stderr(&cmd, &state, 2);
+      parse_stderr(&curr_cmd, &state, 2);
       continue;
     }
 
     if (!state.in_single_quotes && !state.in_double_quotes && c == '1' &&
         state.line[state.pos + 1] == '>') {
-      parse_stdout(&cmd, &state, 2);
+      parse_stdout(&curr_cmd, &state, 2);
       continue;
     } else if (!state.in_single_quotes && !state.in_double_quotes && c == '>') {
-      parse_stdout(&cmd, &state, 1);
+      parse_stdout(&curr_cmd, &state, 1);
       continue;
     }
 
@@ -125,7 +102,7 @@ pc parse_command(const char *line) {
 
     if ((c == ' ' || c == '\0') && !state.in_single_quotes &&
         !state.in_double_quotes) {
-      flush_buffer_to_argv(&state, &cmd);
+      flush_buffer_to_argv(&state, &curr_cmd);
       if (c == '\0')
         break;
       state.pos++;
@@ -134,7 +111,11 @@ pc parse_command(const char *line) {
     state.buffer[state.buffer_index++] = c;
     state.pos++;
   }
-
-  cmd.argv[cmd.argc] = NULL;
-  return cmd;
+  flush_buffer_to_argv(&state, &curr_cmd);
+  curr_cmd.argv[curr_cmd.argc] = NULL;
+  if (curr_cmd.argc > 0 || curr_cmd.redirs.stdout_file ||
+      curr_cmd.redirs.stderr_file) {
+    append(&pl, &curr_cmd);
+  }
+  return pl;
 }

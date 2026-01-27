@@ -26,10 +26,13 @@ typedef struct parser_state {
   size_t pos;
 } ps;
 
-void free_command(pc *cmd);
+typedef struct pipeline {
+  size_t count;
+  pc *commands;
+} pipeline_t;
 
-void flush_buffer_to_argv(ps *state, pc *cmd);
+void append(pipeline_t *pl, pc *cmd);
 
-pc parse_command(const char *line);
+pipeline_t parse_command(const char *line);
 
 #endif

@@ -71,6 +71,11 @@ int main() {
       if (status == 127) {
         printf("%s: command not found\n", command->argv[0]);
       }
+    } else {
+      for (int i = 0; i < pl.count; i++) {
+        pc cmd = pl.commands[i];
+        run_program(&cmd);
+      }
     }
     free_pipeline(&pl);
   }

@@ -1,4 +1,5 @@
 #include "../../include/run/pipeline.h"
+#include "../../include/helpers/hashmap.h"
 #include <stdio.h>
 #include <sys/wait.h>
 #include <unistd.h>
@@ -32,6 +33,15 @@ int run_pipeline(pipeline_t *pl) {
       if (prev_fd != -1)
         close(prev_fd);
 
+      shell_builtin *builtin = hashmap_get(cmd.argv[0]);
+      if (builtin) {
+        builtin->func(cmd.argc, cmd.argv);
+        _exit(0);
+      }
+
+      execvp(cmd.argv[0], cmd.argv);
+      perror("execvp");
+      _exit(1);
       execvp(cmd.argv[0], cmd.argv);
       perror("execvp");
       _exit(1);

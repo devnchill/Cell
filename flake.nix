@@ -14,8 +14,6 @@
     {
       devShells.${system}.default = pkgs.mkShell {
         packages = with pkgs; [
-		  gnumake42  
-		  libgcc
           clang-tools
 		  readline
         ];

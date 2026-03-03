@@ -2,6 +2,7 @@
 #include "../include/builtins/shell_builtin.h"
 #include "../include/helpers/free_pipeline.h"
 #include "../include/helpers/hashmap.h"
+#include "../include/helpers/prompt.h"
 #include "../include/init_auto_completion.h"
 #include "../include/load_history.h"
 #include "../include/parser/parser.h"
@@ -29,7 +30,10 @@ int main() {
 
   while (1) {
 
-    char *line = readline("$ ");
+    char *prompt = build_prompt();
+    char *line = readline(prompt);
+    free(prompt);
+
     if (!line)
       break;
 

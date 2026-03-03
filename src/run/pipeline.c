@@ -10,7 +10,10 @@ int run_pipeline(pipeline_t *pl) {
 
   for (size_t i = 0; i < pl->count; i++) {
     if (i < pl->count - 1)
-      pipe(pfds);
+      if (-1 == pipe(pfds)) {
+        perror("pipe");
+        return -1;
+      }
 
     pc cmd = pl->commands[i];
     pid_t pid = fork();
